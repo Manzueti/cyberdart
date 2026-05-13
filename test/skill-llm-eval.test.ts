@@ -798,7 +798,7 @@ describeIfSelected('Voice directive eval', ['voice directive tone'], () => {
       avoids_ai_vocabulary: number;
       connects_user_outcomes: number;
       reasoning: string;
-    }>(`You are evaluating a voice directive for an AI coding assistant framework called GStack.
+    }>(`You are evaluating a voice directive for an AI coding assistant framework called Cyberdart.
 Score each dimension 1-5 where 5 is excellent:
 
 1. directness: Does it instruct the agent to be direct, lead with the point, take positions?

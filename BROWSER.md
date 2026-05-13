@@ -88,7 +88,7 @@ Three escalating modes:
   cheapest, what skills like `/qa`, `/design-review`, `/benchmark` use by
   default.
 - **Headed via `$B connect`**. Same daemon, but Chromium is visible (rebranded
-  as "GStack Browser") with the Side Panel extension auto-loaded. You watch
+  as "Cyberdart Browser") with the Side Panel extension auto-loaded. You watch
   every command tick through in real time.
 - **Pair-agent over a tunnel**. Daemon binds a second listener that ngrok
   forwards. A remote agent (Codex, OpenClaw, Hermes, anything that can speak
@@ -313,7 +313,7 @@ from `snapshot`, or `@c` refs from `snapshot -C`. Full table:
 | `status` | Daemon health + mode (headless / headed / cdp) |
 | `stop` | Shut down daemon |
 | `restart` | Restart daemon |
-| `connect` | Launch headed GStack Browser with Side Panel extension |
+| `connect` | Launch headed Cyberdart Browser with Side Panel extension |
 | `disconnect` | Close headed Chrome, return to headless |
 | `focus [@ref]` | Bring headed Chrome to foreground (macOS); `@ref` also scrolls into view |
 | `state save\|load <name>` | Save or load browser state (cookies + URLs) |
@@ -504,13 +504,13 @@ Source: `browse/src/domain-skills.ts`, `domain-skill-commands.ts`.
 
 ## Real-browser mode
 
-`$B connect` launches **GStack Browser** — a rebranded Chromium controlled by
+`$B connect` launches **Cyberdart Browser** — a rebranded Chromium controlled by
 Playwright with the Side Panel extension auto-loaded and anti-bot stealth
 patches applied. You watch every command tick through a visible window in
 real time.
 
 ```bash
-$B connect              # launches GStack Browser, headed
+$B connect              # launches Cyberdart Browser, headed
 $B goto https://app.com # navigates in the visible window
 $B snapshot -i          # refs from the real page
 $B click @e3            # clicks in the real window
@@ -523,7 +523,7 @@ The window has a subtle golden shimmer line at the top and a floating
 "cyberdart" pill in the bottom-right corner so you always know which Chrome
 window is being controlled.
 
-### What "GStack Browser" means
+### What "Cyberdart Browser" means
 
 Not your daily Chrome — a Playwright-managed Chromium with custom branding
 in the Dock and menu bar, anti-bot stealth (sites like Google and NYTimes
@@ -606,7 +606,7 @@ transport retries that could corrupt browser traffic.
 
 ## Side Panel + sidebar agent
 
-The Chrome extension that ships baked into GStack Browser shows a live
+The Chrome extension that ships baked into Cyberdart Browser shows a live
 activity feed of every browse command in a Side Panel, plus `@ref` overlays
 on the page, plus an interactive Claude PTY inside the sidebar.
 

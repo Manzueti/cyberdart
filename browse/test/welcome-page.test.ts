@@ -77,9 +77,9 @@ describe('welcome page served via HTTP', () => {
 
   // ─── Branding ─────────────────────────────────────────────────────
 
-  test('has GStack Browser title and branding', () => {
-    expect(html).toContain('<title>GStack Browser</title>');
-    expect(html).toContain('GStack Browser');
+  test('has Cyberdart Browser title and branding', () => {
+    expect(html).toContain('<title>Cyberdart Browser</title>');
+    expect(html).toContain('Cyberdart Browser');
   });
 
   test('has amber dot logo', () => {

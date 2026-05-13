@@ -497,7 +497,7 @@ equivalents (cat, sed, find, grep). The dedicated tools are cheaper and clearer.
 
 ## Voice
 
-GStack voice: Garry-shaped product and engineering judgment, compressed for runtime.
+Cyberdart voice: Garry-shaped product and engineering judgment, compressed for runtime.
 
 - Lead with the point. Say what it does, why it matters, and what changes for the builder.
 - Be concrete. Name files, functions, line numbers, commands, outputs, evals, and real numbers.
@@ -969,7 +969,7 @@ $B status
 
 Look for the connected agent in the status output. If it appears, tell the user:
 "The remote agent is connected and has its own tab. You'll see its activity in the
-side panel if you have GStack Browser open."
+side panel if you have Cyberdart Browser open."
 
 ## What the remote agent can do
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build GStack Browser.app — macOS application bundle
+# Build Cyberdart Browser.app — macOS application bundle
 #
 # Creates a self-contained .app with:
 #   - Compiled browse binary
@@ -7,7 +7,7 @@
 #   - Chrome extension (sidebar)
 #   - Info.plist with bundle ID
 #
-# Output: dist/GStack Browser.app and dist/GStack-Browser.dmg
+# Output: dist/Cyberdart Browser.app and dist/Cyberdart-Browser.dmg
 #
 # Usage:
 #   ./scripts/build-app.sh           # Build .app + DMG
@@ -17,7 +17,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_NAME="GStack Browser"
+APP_NAME="Cyberdart Browser"
 BUNDLE_ID="com.cyberdart.browser"
 VERSION=$(cat "$ROOT/VERSION" 2>/dev/null || echo "0.0.1")
 BUILD_DIR="$ROOT/dist"
@@ -82,7 +82,7 @@ echo "  Copying Chromium (~330MB)..."
 cp -a "$CHROME_APP" "$APP_DIR/Contents/Resources/chromium/"
 
 # ─── Step 3b: Rebrand Chromium ────────────────────────────────────
-# Patch the bundled Chromium's Info.plist so macOS shows "GStack Browser"
+# Patch the bundled Chromium's Info.plist so macOS shows "Cyberdart Browser"
 # in the menu bar, Dock, and Cmd+Tab instead of "Google Chrome for Testing"
 CHROMIUM_PLIST="$APP_DIR/Contents/Resources/chromium/$(basename "$CHROME_APP")/Contents/Info.plist"
 if [ -f "$CHROMIUM_PLIST" ]; then
@@ -96,7 +96,7 @@ if [ -f "$CHROMIUM_PLIST" ]; then
     plutil -convert xml1 "$CHROMIUM_STRINGS" 2>/dev/null || true
     sed -i '' "s/Google Chrome for Testing/$APP_NAME/g" "$CHROMIUM_STRINGS" 2>/dev/null || true
   fi
-  # Replace Chromium's icon with ours so the Dock shows the GStack icon
+  # Replace Chromium's icon with ours so the Dock shows the Cyberdart icon
   # (Chromium's process owns the Dock icon, not our launcher)
   ICON_SRC="$SCRIPT_DIR/app/icon.icns"
   if [ -f "$ICON_SRC" ]; then
@@ -171,7 +171,7 @@ if [ "${1:-}" = "--no-dmg" ]; then
   exit 0
 fi
 
-DMG_PATH="$BUILD_DIR/GStack-Browser.dmg"
+DMG_PATH="$BUILD_DIR/Cyberdart-Browser.dmg"
 echo ""
 echo "  Creating DMG..."
 rm -f "$DMG_PATH"

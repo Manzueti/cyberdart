@@ -1239,7 +1239,7 @@ async function start() {
         return handleCookiePickerRoute(url, req, browserManager, AUTH_TOKEN);
       }
 
-      // Welcome page — served when GStack Browser launches in headed mode
+      // Welcome page — served when Cyberdart Browser launches in headed mode
       if (url.pathname === '/welcome') {
         const welcomePath = (() => {
           // Gate CYBERDART_SLUG on a strict regex BEFORE interpolating it into
@@ -1272,10 +1272,10 @@ async function start() {
         }
         // No welcome page found — serve a simple fallback (avoid ERR_UNSAFE_REDIRECT on Windows)
         return new Response(
-          `<!DOCTYPE html><html><head><title>GStack Browser</title>
+          `<!DOCTYPE html><html><head><title>Cyberdart Browser</title>
           <style>body{background:#111;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}
           .msg{text-align:center;opacity:.7;}.gold{color:#f5a623;font-size:2em;margin-bottom:12px;}</style></head>
-          <body><div class="msg"><div class="gold">◈</div><p>GStack Browser ready.</p><p style="font-size:.85em">Waiting for commands from Claude Code.</p></div></body></html>`,
+          <body><div class="msg"><div class="gold">◈</div><p>Cyberdart Browser ready.</p><p style="font-size:.85em">Waiting for commands from Claude Code.</p></div></body></html>`,
           { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
         );
       }

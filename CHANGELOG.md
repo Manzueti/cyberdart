@@ -3006,7 +3006,7 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 
 ### Fixed
 - **`/open-cyberdart-browser` actually stays open now.** If you ran `/open-cyberdart-browser` or `$B connect` and your browser vanished roughly 15 seconds later, this was why: a watchdog inside the browse server was polling the CLI process that spawned it, and when the CLI exited (which it does, immediately, right after launching the browser), the watchdog said "orphan!" and killed everything. The fix disables that watchdog for headed mode, both in the CLI (always set `BROWSE_PARENT_PID=0` for headed launches) and in the server (skip the watchdog entirely when `BROWSE_HEADED=1`). Two layers of defense in case a future launcher forgets to pass the env var. Thanks to @rocke2020 (#1020), @sanghyuk-seo-nexcube (#1018), @rodbland2021 (#1012), and @jbetala7 (#986) for independently diagnosing this and sending in clean, well-documented fixes.
-- **Closing the headed browser window now cleans up properly.** Before this release, clicking the X on the GStack Browser window skipped the server's cleanup routine and exited the process directly. That left behind stale sidebar-agent processes polling a dead server, unsaved chat session state, leftover Chromium profile locks (which cause "profile in use" errors on the next `$B connect`), and a stale `browse.json` state file. Now the disconnect handler routes through the full `shutdown()` path first, cleans everything, and then exits with code 2 (which still distinguishes user-close from crash).
+- **Closing the headed browser window now cleans up properly.** Before this release, clicking the X on the Cyberdart Browser window skipped the server's cleanup routine and exited the process directly. That left behind stale sidebar-agent processes polling a dead server, unsaved chat session state, leftover Chromium profile locks (which cause "profile in use" errors on the next `$B connect`), and a stale `browse.json` state file. Now the disconnect handler routes through the full `shutdown()` path first, cleans everything, and then exits with code 2 (which still distinguishes user-close from crash).
 - **CI/Claude Code Bash calls can now share a persistent headless server.** The headless spawn path used to hardcode the CLI's own PID as the watchdog target, ignoring `BROWSE_PARENT_PID=0` even if you set it in your environment. Now `BROWSE_PARENT_PID=0 $B goto https://...` keeps the server alive across short-lived CLI invocations, which is what multi-step workflows (CI matrices, Claude Code's Bash tool, cookie picker flows) actually want.
 - **`SIGTERM` / `SIGINT` shutdown now exits with code 0 instead of 1.** Regression caught during /ship's adversarial review: when `shutdown()` started accepting an `exitCode` argument, Node's signal listeners silently passed the signal name (`'SIGTERM'`) as the exit code, which got coerced to `NaN` and used `1`. Wrapped the listeners so they call `shutdown()` with no args. Your `Ctrl+C` now exits clean again.
 
@@ -3147,7 +3147,7 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 
 ### Fixed
 - pair-agent tunnel drops after 15 seconds. The browse server was monitoring its parent process ID and self-terminating when the CLI exited. Now pair-agent sessions disable the parent watchdog so the server and tunnel stay alive.
-- `$B connect` crashes with "domains is not defined". A stray variable reference in the headed-mode status check prevented GStack Browser from initializing properly.
+- `$B connect` crashes with "domains is not defined". A stray variable reference in the headed-mode status check prevented Cyberdart Browser from initializing properly.
 
 ## [0.15.15.0] - 2026-04-06
 
@@ -3694,7 +3694,7 @@ Six community fixes with 16 new tests. Telemetry off now means off everywhere. S
 - **`bin/cyberdart-relink`** re-creates skill symlinks when you change `skill_prefix` via `cyberdart-config set`. No more manual `./setup` re-run needed.
 - **`bin/cyberdart-open-url`** cross-platform URL opener (macOS: `open`, Linux: `xdg-open`, Windows: `start`).
 
-## [0.13.6.0] - 2026-03-29. GStack Learns
+## [0.13.6.0] - 2026-03-29. Cyberdart Learns
 
 Every session now makes the next one smarter. cyberdart remembers patterns, pitfalls, and preferences across sessions and uses them to improve every review, plan, debug, and ship. The more you use it, the better it gets on your codebase.
 
@@ -3707,7 +3707,7 @@ Every session now makes the next one smarter. cyberdart remembers patterns, pitf
 - **Cross-project discovery.** cyberdart can search learnings from your other projects for matching patterns. Opt-in, with a one-time AskUserQuestion for consent. Stays local to your machine.
 - **Confidence decay.** Observed and inferred learnings lose 1 confidence point per 30 days. User-stated preferences never decay. A good pattern is a good pattern forever, but uncertain observations fade.
 - **Learnings count in preamble.** Every skill now shows "LEARNINGS: N entries loaded" during startup.
-- **5-release roadmap design doc.** `docs/designs/SELF_LEARNING_V0.md` maps the path from R1 (GStack Learns) through R4 (/autoship, one-command full feature) to R5 (Studio).
+- **5-release roadmap design doc.** `docs/designs/SELF_LEARNING_V0.md` maps the path from R1 (Cyberdart Learns) through R4 (/autoship, one-command full feature) to R5 (Studio).
 
 ## [0.13.5.1] - 2026-03-29. Gitignore .factory
 
@@ -5026,7 +5026,7 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - **Shared `review/TODOS-format.md`**. canonical TODO item format referenced by `/ship` and `/plan-ceo-review` to prevent format drift (DRY).
 - **Greptile 2-tier reply system**. Tier 1 (friendly, inline diff + explanation) for first responses; Tier 2 (firm, full evidence chain + re-rank request) when Greptile re-flags after a prior reply.
 - **Greptile reply templates**. structured templates in `greptile-triage.md` for fixes (inline diff), already-fixed (what was done), and false positives (evidence + suggested re-rank). Replaces vague one-line replies.
-- **Greptile escalation detection**. explicit algorithm to detect prior GStack replies on comment threads and auto-escalate to Tier 2.
+- **Greptile escalation detection**. explicit algorithm to detect prior Cyberdart replies on comment threads and auto-escalate to Tier 2.
 - **Greptile severity re-ranking**. replies now include `**Suggested re-rank:**` when Greptile miscategorizes issue severity.
 - Static validation tests for `TODOS-format.md` references across skills.
 

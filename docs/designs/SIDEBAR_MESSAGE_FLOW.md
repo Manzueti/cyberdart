@@ -1,6 +1,6 @@
 # Sidebar Flow
 
-How the GStack Browser sidebar actually works. Read this before touching
+How the Cyberdart Browser sidebar actually works. Read this before touching
 `sidepanel.js`, `background.js`, `content.js`, `terminal-agent.ts`, or
 sidebar-related server endpoints.
 

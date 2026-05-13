@@ -2,7 +2,7 @@
 name: open-cyberdart-browser
 version: 0.2.0
 description: |
-  Launch GStack Browser — AI-controlled Chromium with the sidebar extension baked in.
+  Launch Cyberdart Browser — AI-controlled Chromium with the sidebar extension baked in.
   Opens a visible browser window where you can watch every action in real time.
   The sidebar shows a live activity feed and chat. Anti-bot stealth built in.
   Use when asked to "open cyberdart browser", "launch browser", "connect chrome",
@@ -496,7 +496,7 @@ equivalents (cat, sed, find, grep). The dedicated tools are cheaper and clearer.
 
 ## Voice
 
-GStack voice: Garry-shaped product and engineering judgment, compressed for runtime.
+Cyberdart voice: Garry-shaped product and engineering judgment, compressed for runtime.
 
 - Lead with the point. Say what it does, why it matters, and what changes for the builder.
 - Be concrete. Name files, functions, line numbers, commands, outputs, evals, and real numbers.
@@ -761,9 +761,9 @@ In plan mode before ExitPlanMode: if the plan file lacks `## CYBERDART REVIEW RE
 
 PLAN MODE EXCEPTION — always allowed (it's the plan file).
 
-# /open-cyberdart-browser — Launch GStack Browser
+# /open-cyberdart-browser — Launch Cyberdart Browser
 
-Launch GStack Browser — AI-controlled Chromium with the sidebar extension,
+Launch Cyberdart Browser — AI-controlled Chromium with the sidebar extension,
 anti-bot stealth, and custom branding. You see every action in real time.
 
 ## SETUP (run this check BEFORE any browse command)
@@ -831,11 +831,11 @@ echo "Pre-flight cleanup done"
 $B connect
 ```
 
-This launches GStack Browser (rebranded Chromium) in headed mode with:
+This launches Cyberdart Browser (rebranded Chromium) in headed mode with:
 - A visible window you can watch (not your regular Chrome — it stays untouched)
 - The cyberdart sidebar extension auto-loaded via `launchPersistentContext`
 - Anti-bot stealth patches (sites like Google and NYTimes work without captchas)
-- Custom user agent and GStack Browser branding in Dock/menu bar
+- Custom user agent and Cyberdart Browser branding in Dock/menu bar
 - A sidebar agent process for chat commands
 
 The `connect` command auto-discovers the extension from the cyberdart install

@@ -5,9 +5,9 @@ browse/dist/
 design/dist/
 make-pdf/dist/
 bin/cyberdart-global-discover*
-bin/gstack-global-discover*
+bin/cyberdart-global-discover*
 .cyberdart/
-.gstack/
+.cyberdart/
 .claude/skills/
 .claude/scheduled_tasks.lock
 .claude/*.lock
@@ -28,7 +28,7 @@ extension/lib/xterm.js
 extension/lib/xterm.css
 extension/lib/xterm-addon-fit.js
 .cyberdart-worktrees/
-.gstack-worktrees/
+.cyberdart-worktrees/
 /tmp/
 *.log
 *.bun-build

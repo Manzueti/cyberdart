@@ -1617,7 +1617,7 @@ Shipped in v0.6.5. TemplateContext in gen-skill-docs.ts bakes skill name into pr
 **Priority:** P3
 **Depends on:** --host factory
 
-## GStack Browser
+## Cyberdart Browser
 
 ### Anti-bot stealth: Playwright CDP patches (rebrowser-style)
 
@@ -1633,7 +1633,7 @@ Shipped in v0.6.5. TemplateContext in gen-skill-docs.ts bakes skill name into pr
 
 ### Chromium fork (long-term alternative to CDP patches)
 
-**What:** Maintain a Chromium fork where anti-bot stealth, GStack Browser branding, and native sidebar support live in the source code, not as runtime monkey-patches.
+**What:** Maintain a Chromium fork where anti-bot stealth, Cyberdart Browser branding, and native sidebar support live in the source code, not as runtime monkey-patches.
 
 **Why:** The CDP patches are brittle. They break on every Playwright upgrade and target compiled JS with fragile string matching. A proper fork means: (1) stealth is permanent, not patched, (2) branding is native (no plist hacking at launch), (3) native sidebar replaces the extension (Phase 4 of V0 roadmap), (4) custom protocols (cyberdart://) for internal pages. Companies like Brave, Arc, and Vivaldi maintain Chromium forks with small teams. With CC, the rebase-on-upstream maintenance could be largely automated.
 
