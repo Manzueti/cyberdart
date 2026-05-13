@@ -4,11 +4,11 @@ preamble-tier: 2
 version: 1.0.0
 description: |
   Keep gbrain current with this repo's code and refresh agent search
-  guidance in CLAUDE.md. Wraps the gstack-gbrain-sync orchestrator with
+  guidance in CLAUDE.md. Wraps the cyberdart-gbrain-sync orchestrator with
   state probing, native code-surface registration, capability checks,
   and a verdict block. Re-runnable, idempotent. Use when: "sync gbrain",
   "refresh gbrain", "re-index this repo", "gbrain search isn't finding
-  things". (gstack)
+  things". (cyberdart)
 triggers:
   - sync gbrain
   - refresh gbrain
@@ -38,7 +38,7 @@ search over Grep.
 **native code surfaces** (`gbrain sources add`, `gbrain sync --strategy code`,
 `gbrain reindex-code`, `gbrain code-def/code-refs/code-callers/code-callees`).
 It does NOT use `gbrain import` (that path is for markdown directories).
-It does NOT touch `~/.gstack/` indexing (the existing `gstack-gbrain-source-wireup`
+It does NOT touch `~/.cyberdart/` indexing (the existing `cyberdart-gbrain-source-wireup`
 owns that — never double-store).
 
 ## User-invocable
@@ -54,7 +54,7 @@ the skill itself, not a dispatcher binary):
 - `/sync-gbrain --quiet` — suppress per-stage output
 
 Pass-through args go straight to the orchestrator at
-`{{BIN_DIR}}/gstack-gbrain-sync.ts`.
+`{{BIN_DIR}}/cyberdart-gbrain-sync.ts`.
 
 ---
 
@@ -63,7 +63,7 @@ Pass-through args go straight to the orchestrator at
 Before doing anything, check that /setup-gbrain has been run on this Mac.
 
 ```bash
-~/.claude/skills/gstack/bin/gstack-gbrain-detect 2>/dev/null
+~/.claude/skills/cyberdart/bin/cyberdart-gbrain-detect 2>/dev/null
 ```
 
 **Split-engine model.** Code stage always runs locally against a per-machine
@@ -89,7 +89,7 @@ the user:
 Do NOT continue — the skill is unsafe when the local gbrain CLI is missing
 (we'd write a CLAUDE.md guidance block referencing tools that don't exist).
 
-Also check the per-repo trust policy. If `gstack-gbrain-repo-policy get` for
+Also check the per-repo trust policy. If `cyberdart-gbrain-repo-policy get` for
 this repo returns `deny`, STOP:
 
 > "This repo's gbrain trust policy is `deny`. Run `/setup-gbrain --repo` to
@@ -103,14 +103,14 @@ Pass user args to the orchestrator. Do not paraphrase them — pass through
 as-is.
 
 ```bash
-bun run ~/.claude/skills/gstack/bin/gstack-gbrain-sync.ts <user-args>
+bun run ~/.claude/skills/cyberdart/bin/cyberdart-gbrain-sync.ts <user-args>
 ```
 
 The orchestrator runs three stages: code → memory → brain-sync (per the
 plan's storage tiering). Each stage failure is non-fatal; subsequent stages
-still run. State is persisted to `~/.gstack/.gbrain-sync-state.json` via
+still run. State is persisted to `~/.cyberdart/.gbrain-sync-state.json` via
 tmp-file + atomic rename. Concurrent runs are blocked by a lock file at
-`~/.gstack/.sync-gbrain.lock` (5-min stale-takeover).
+`~/.cyberdart/.sync-gbrain.lock` (5-min stale-takeover).
 
 ---
 
@@ -119,7 +119,7 @@ tmp-file + atomic rename. Concurrent runs are blocked by a lock file at
 After the sync run, query gbrain for the cwd source's page_count:
 
 ```bash
-SOURCE_ID=$(grep -o '"source_id":"[^"]*"' ~/.gstack/.gbrain-sync-state.json 2>/dev/null \
+SOURCE_ID=$(grep -o '"source_id":"[^"]*"' ~/.cyberdart/.gbrain-sync-state.json 2>/dev/null \
   | head -1 | sed 's/.*"source_id":"//;s/".*//')
 PAGES=$(gbrain sources list --json 2>/dev/null \
   | jq -r --arg id "$SOURCE_ID" '.sources[] | select(.id==$id) | .page_count' 2>/dev/null \
@@ -178,7 +178,7 @@ Verbatim block content (copy exactly):
 
 ```markdown
 ## GBrain Search Guidance (configured by /sync-gbrain)
-<!-- gstack-gbrain-search-guidance:start -->
+<!-- cyberdart-gbrain-search-guidance:start -->
 
 GBrain is set up and synced on this machine. The agent should prefer gbrain
 over Grep when the question is semantic or when you don't know the exact
@@ -194,7 +194,7 @@ match the actual code on disk in this worktree.
 
 Two indexed corpora available via the `gbrain` CLI:
 - This worktree's code (auto-pinned via `.gbrain-source`).
-- `~/.gstack/` curated memory (registered as `gstack-brain-<user>` source via
+- `~/.cyberdart/` curated memory (registered as `cyberdart-brain-<user>` source via
   the existing federation pipeline).
 
 Prefer gbrain when:
@@ -205,19 +205,19 @@ Prefer gbrain when:
 - "What calls Y?" / "What does Y depend on?":
     `gbrain code-callers <symbol>` / `gbrain code-callees <symbol>`
 - "What did we decide last time?" / past plans, retros, learnings:
-    `gbrain search "<terms>" --source gstack-brain-<user>`
+    `gbrain search "<terms>" --source cyberdart-brain-<user>`
 
 Grep is still right for known exact strings, regex, multiline patterns, and
 file globs. Run `/sync-gbrain` after meaningful code changes; for ongoing
 auto-sync across all worktrees, run `gbrain autopilot --install` once per
 machine — gbrain's daemon handles incremental refresh on a schedule.
 
-<!-- gstack-gbrain-search-guidance:end -->
+<!-- cyberdart-gbrain-search-guidance:end -->
 ```
 
 Use the Read + Edit tools. The find-and-replace target is the entire region
-from `<!-- gstack-gbrain-search-guidance:start -->` through
-`<!-- gstack-gbrain-search-guidance:end -->`. If those markers are missing,
+from `<!-- cyberdart-gbrain-search-guidance:start -->` through
+`<!-- cyberdart-gbrain-search-guidance:end -->`. If those markers are missing,
 search for `## GBrain Search Guidance (configured by /sync-gbrain)` heading
 and replace from there to the next `## ` or EOF. If no heading exists, append
 the entire block at the end of CLAUDE.md.
@@ -248,8 +248,8 @@ gbrain status: GREEN
   CLI ............. OK   <gbrain version>
   Engine .......... OK   <pglite|supabase>
   Capability ...... OK   write+search round-trip
-  CWD source ...... OK   <gstack-code-{repo_slug}> (page_count=<N>)
-  ~/.gstack source. OK   <gstack-brain-{user}> (page_count=<N>) — managed by /setup-gbrain
+  CWD source ...... OK   <cyberdart-code-{repo_slug}> (page_count=<N>)
+  ~/.cyberdart source. OK   <cyberdart-brain-{user}> (page_count=<N>) — managed by /setup-gbrain
   Memory sync ..... OK   <artifacts_sync_mode>
   CLAUDE.md ....... OK   ## GBrain Search Guidance present
   Last sync ....... OK   <last_sync from state file>
@@ -266,15 +266,15 @@ check failed; CLAUDE.md guidance block REMOVED — run /setup-gbrain to repair`)
 ## Concurrency note
 
 This skill is safe to run concurrently from multiple terminals on the same
-Mac. The orchestrator acquires a lock at `~/.gstack/.sync-gbrain.lock` before
+Mac. The orchestrator acquires a lock at `~/.cyberdart/.sync-gbrain.lock` before
 any state-file or CLAUDE.md mutation and exits with code 2 if another sync is
 in flight. Stale locks (process died) auto-clear after 5 minutes.
 
 ## Cross-machine note
 
 The `## GBrain Search Guidance` block is committed to the repo's CLAUDE.md
-and travels with `git push`/`git pull` — NOT through `~/.gstack/.brain-allowlist`
-(which is for `~/.gstack/` brain-sync only). On a different Mac with a synced
+and travels with `git push`/`git pull` — NOT through `~/.cyberdart/.brain-allowlist`
+(which is for `~/.cyberdart/` brain-sync only). On a different Mac with a synced
 CLAUDE.md but no local gbrain, /sync-gbrain detects the mismatch via the
 capability check and REMOVES the block (the local agent shouldn't be told to
 use a tool that isn't installed).

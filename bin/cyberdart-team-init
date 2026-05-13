@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# cyberdart-team-init — generate repo-level bootstrap files for team mode
+#
+# Usage:
+#   cyberdart-team-init optional   # gentle CLAUDE.md suggestion, one-time offer
+#   cyberdart-team-init required   # CLAUDE.md enforcement + PreToolUse hook
+#
+# Run from the root of your team's repo (not from the cyberdart directory).
+
+set -euo pipefail
+
+MODE="${1:-}"
+
+if [ "$MODE" != "optional" ] && [ "$MODE" != "required" ]; then
+  echo "Usage: cyberdart-team-init {optional|required}" >&2
+  echo "" >&2
+  echo "  optional  — suggest cyberdart install once per developer (gentle)" >&2
+  echo "  required  — enforce cyberdart install, block work without it" >&2
+  exit 1
+fi
+
+# Must be in a git repo
+if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
+  echo "Error: not in a git repository. Run from your project root." >&2
+  exit 1
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+CLAUDE_MD="$REPO_ROOT/CLAUDE.md"
+GENERATED=()
+
+# ── Migrate vendored copy if present ──────────────────────────
+
+if [ -d "$REPO_ROOT/.claude/skills/cyberdart" ] && [ ! -L "$REPO_ROOT/.claude/skills/cyberdart" ]; then
+  if [ -f "$REPO_ROOT/.claude/skills/cyberdart/VERSION" ] || [ -d "$REPO_ROOT/.claude/skills/cyberdart/.git" ]; then
+    echo "  Found vendored cyberdart copy at $REPO_ROOT/.claude/skills/cyberdart"
+    echo "  Team mode uses the global install — removing vendored copy..."
+    ( cd "$REPO_ROOT" && git rm -r --cached .claude/skills/cyberdart/ 2>/dev/null ) || true
+    if [ -f "$REPO_ROOT/.gitignore" ]; then
+      if ! grep -qF '.claude/skills/cyberdart/' "$REPO_ROOT/.gitignore" 2>/dev/null; then
+        echo '.claude/skills/cyberdart/' >> "$REPO_ROOT/.gitignore"
+      fi
+    else
+      echo '.claude/skills/cyberdart/' > "$REPO_ROOT/.gitignore"
+    fi
+    rm -rf "$REPO_ROOT/.claude/skills/cyberdart"
+    GENERATED+=(".gitignore")
+    echo "  Removed vendored copy and added .claude/skills/cyberdart/ to .gitignore"
+  fi
+fi
+
+# ── CLAUDE.md snippet ──────────────────────────────────────────
+
+if [ "$MODE" = "optional" ]; then
+  SNIPPET='## cyberdart (recommended)
+
+This project uses [cyberdart](https://github.com/garrytan/cyberdart) for AI-assisted workflows.
+Install it for the best experience:
+
+```bash
+git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart
+cd ~/.claude/skills/cyberdart && ./setup --team
+```
+
+Skills like /qa, /ship, /review, /investigate, and /browse become available after install.
+Use /browse for all web browsing. Use ~/.claude/skills/cyberdart/... for cyberdart file paths.'
+else
+  SNIPPET='## cyberdart (REQUIRED — global install)
+
+**Before doing ANY work, verify cyberdart is installed:**
+
+```bash
+test -d ~/.claude/skills/cyberdart/bin && echo "CYBERDART_OK" || echo "CYBERDART_MISSING"
+```
+
+If CYBERDART_MISSING: STOP. Do not proceed. Tell the user:
+
+> cyberdart is required for all AI-assisted work in this repo.
+> Install it:
+> ```bash
+> git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart
+> cd ~/.claude/skills/cyberdart && ./setup --team
+> ```
+> Then restart your AI coding tool.
+
+Do not skip skills, ignore cyberdart errors, or work around missing cyberdart.
+
+Using cyberdart skills: After install, skills like /qa, /ship, /review, /investigate,
+and /browse are available. Use /browse for all web browsing.
+Use ~/.claude/skills/cyberdart/... for cyberdart file paths (the global path).'
+fi
+
+# Check if CLAUDE.md already has a cyberdart section
+if [ -f "$CLAUDE_MD" ] && grep -q "## cyberdart" "$CLAUDE_MD" 2>/dev/null; then
+  echo "CLAUDE.md already has a cyberdart section. Skipping CLAUDE.md update."
+  echo "  To replace it, remove the existing ## cyberdart section and re-run."
+else
+  if [ -f "$CLAUDE_MD" ]; then
+    echo "" >> "$CLAUDE_MD"
+  fi
+  echo "$SNIPPET" >> "$CLAUDE_MD"
+  GENERATED+=("CLAUDE.md")
+  echo "  + CLAUDE.md — added cyberdart $MODE section"
+fi
+
+# ── Required mode: enforcement hook ────────────────────────────
+
+if [ "$MODE" = "required" ]; then
+  HOOKS_DIR="$REPO_ROOT/.claude/hooks"
+  SETTINGS="$REPO_ROOT/.claude/settings.json"
+
+  # Create enforcement hook script
+  mkdir -p "$HOOKS_DIR"
+  cat > "$HOOKS_DIR/check-cyberdart.sh" << 'HOOK_EOF'
+#!/bin/bash
+# Block skill usage when cyberdart is not installed globally.
+
+if [ ! -d "$HOME/.claude/skills/cyberdart/bin" ]; then
+  cat >&2 <<'MSG'
+BLOCKED: cyberdart is not installed globally.
+
+cyberdart is required for AI-assisted work in this repo.
+
+Install it:
+  git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart
+  cd ~/.claude/skills/cyberdart && ./setup --team
+
+Then restart your AI coding tool.
+MSG
+  echo '{"permissionDecision":"deny","message":"cyberdart is required but not installed. See stderr for install instructions."}'
+  exit 0
+fi
+
+echo '{}'
+HOOK_EOF
+  chmod +x "$HOOKS_DIR/check-cyberdart.sh"
+  GENERATED+=(".claude/hooks/check-cyberdart.sh")
+  echo "  + .claude/hooks/check-cyberdart.sh — enforcement hook"
+
+  # Add hook to project-level settings.json
+  if command -v bun >/dev/null 2>&1; then
+    CYBERDART_SETTINGS_PATH="$SETTINGS" bun -e "
+      const fs = require('fs');
+      const settingsPath = process.env.CYBERDART_SETTINGS_PATH;
+
+      let settings = {};
+      try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch {}
+
+      if (!settings.hooks) settings.hooks = {};
+      if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
+
+      // Dedup
+      const exists = settings.hooks.PreToolUse.some(entry =>
+        entry.matcher === 'Skill' &&
+        entry.hooks && entry.hooks.some(h => h.command && h.command.includes('check-cyberdart'))
+      );
+
+      if (!exists) {
+        settings.hooks.PreToolUse.push({
+          matcher: 'Skill',
+          hooks: [{
+            type: 'command',
+            command: '\"\$CLAUDE_PROJECT_DIR/.claude/hooks/check-cyberdart.sh\"'
+          }]
+        });
+      }
+
+      const tmp = settingsPath + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n');
+      fs.renameSync(tmp, settingsPath);
+    " 2>/dev/null
+    GENERATED+=(".claude/settings.json")
+    echo "  + .claude/settings.json — PreToolUse hook registered"
+  else
+    echo "  ! bun not found — manually add the PreToolUse hook to .claude/settings.json"
+  fi
+fi
+
+# ── Summary ────────────────────────────────────────────────────
+
+echo ""
+echo "Team mode ($MODE) initialized."
+echo ""
+if [ ${#GENERATED[@]} -gt 0 ]; then
+  echo "Commit the generated files:"
+  echo "  git add ${GENERATED[*]}"
+  echo "  git commit -m \"chore: require cyberdart for AI-assisted work\""
+fi
+echo ""
+echo "Each developer then runs:"
+echo "  git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart"
+echo "  cd ~/.claude/skills/cyberdart && ./setup --team"

@@ -1,0 +1,259 @@
+#!/usr/bin/env bash
+# cyberdart-uninstall — remove cyberdart skills, state, and browse daemons
+#
+# Usage:
+#   cyberdart-uninstall              — interactive uninstall (prompts before removing)
+#   cyberdart-uninstall --force      — remove everything without prompting
+#   cyberdart-uninstall --keep-state — remove skills but keep ~/.cyberdart/ data
+#
+# What gets REMOVED:
+#   ~/.claude/skills/cyberdart       — global Claude skill install (git clone or vendored)
+#   ~/.claude/skills/{skill}      — per-skill symlinks created by setup
+#   ~/.codex/skills/cyberdart*       — Codex skill install + per-skill symlinks
+#   ~/.factory/skills/cyberdart*     — Factory Droid skill install + per-skill symlinks
+#   ~/.kiro/skills/cyberdart*        — Kiro skill install + per-skill symlinks
+#   ~/.cyberdart/                    — global state (config, analytics, sessions, projects,
+#                                   repos, installation-id, browse error logs)
+#   .claude/skills/cyberdart*        — project-local skill install (--local installs)
+#   .cyberdart/                      — per-project browse state (in current git repo)
+#   .cyberdart-worktrees/            — per-project test worktrees (in current git repo)
+#   .agents/skills/cyberdart*        — Codex/Gemini/Cursor sidecar (in current git repo)
+#   Running browse daemons        — stopped via SIGTERM before cleanup
+#
+# What is NOT REMOVED:
+#   ~/Library/Caches/ms-playwright/  — Playwright Chromium (shared, may be used by other tools)
+#   ~/.cyberdart-dev/                   — developer eval artifacts (only present in cyberdart contributors)
+#
+# Env overrides (for testing):
+#   CYBERDART_DIR        — override auto-detected cyberdart root
+#   CYBERDART_STATE_DIR  — override ~/.cyberdart state directory
+#
+# NOTE: Uses set -uo pipefail (no -e) — uninstall must never abort partway.
+set -uo pipefail
+
+if [ -z "${HOME:-}" ]; then
+  echo "ERROR: \$HOME is not set" >&2
+  exit 1
+fi
+
+CYBERDART_DIR="${CYBERDART_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_DIR="${CYBERDART_STATE_DIR:-$HOME/.cyberdart}"
+_GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+
+# ─── Parse flags ─────────────────────────────────────────────
+FORCE=0
+KEEP_STATE=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --force) FORCE=1; shift ;;
+    --keep-state) KEEP_STATE=1; shift ;;
+    -h|--help)
+      sed -n '2,/^[^#]/{ /^#/s/^# \{0,1\}//p; }' "$0"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "Usage: cyberdart-uninstall [--force] [--keep-state]" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# ─── Confirmation ────────────────────────────────────────────
+if [ "$FORCE" -eq 0 ]; then
+  echo "This will remove cyberdart from your system:"
+  { [ -d "$HOME/.claude/skills/cyberdart" ] || [ -L "$HOME/.claude/skills/cyberdart" ]; } && echo "  ~/.claude/skills/cyberdart (+ per-skill symlinks)"
+  [ -d "$HOME/.codex/skills" ] && echo "  ~/.codex/skills/cyberdart*"
+  [ -d "$HOME/.factory/skills" ] && echo "  ~/.factory/skills/cyberdart*"
+  [ -d "$HOME/.kiro/skills" ] && echo "  ~/.kiro/skills/cyberdart*"
+  [ "$KEEP_STATE" -eq 0 ] && [ -d "$STATE_DIR" ] && echo "  $STATE_DIR"
+
+  if [ -n "$_GIT_ROOT" ]; then
+    [ -d "$_GIT_ROOT/.claude/skills/cyberdart" ] && echo "  $_GIT_ROOT/.claude/skills/cyberdart (project-local)"
+    [ -d "$_GIT_ROOT/.cyberdart" ] && echo "  $_GIT_ROOT/.cyberdart/ (browse state + reports)"
+    [ -d "$_GIT_ROOT/.cyberdart-worktrees" ] && echo "  $_GIT_ROOT/.cyberdart-worktrees/"
+    [ -d "$_GIT_ROOT/.agents/skills" ] && echo "  $_GIT_ROOT/.agents/skills/cyberdart*"
+  fi
+
+  # Preview running daemons
+  if [ -n "$_GIT_ROOT" ] && [ -f "$_GIT_ROOT/.cyberdart/browse.json" ]; then
+    _PREVIEW_PID="$(awk -F'[:,]' '/"pid"/ { for(i=1;i<=NF;i++) if($i ~ /"pid"/) { gsub(/[^0-9]/, "", $(i+1)); print $(i+1); exit } }' "$_GIT_ROOT/.cyberdart/browse.json" 2>/dev/null || true)"
+    [ -n "$_PREVIEW_PID" ] && kill -0 "$_PREVIEW_PID" 2>/dev/null && echo "  browse daemon (PID $_PREVIEW_PID) will be stopped"
+  fi
+
+  printf "\nContinue? [y/N] "
+  read -r REPLY
+  case "$REPLY" in
+    y|Y|yes|YES) ;;
+    *) echo "Aborted."; exit 0 ;;
+  esac
+fi
+
+REMOVED=()
+
+# ─── Stop running browse daemons ─────────────────────────────
+# Browse servers write PID to {project}/.cyberdart/browse.json.
+# Stop any we can find before removing state directories.
+stop_browse_daemon() {
+  local state_file="$1"
+  if [ ! -f "$state_file" ]; then
+    return
+  fi
+  local pid
+  pid="$(awk -F'[:,]' '/"pid"/ { for(i=1;i<=NF;i++) if($i ~ /"pid"/) { gsub(/[^0-9]/, "", $(i+1)); print $(i+1); exit } }' "$state_file" 2>/dev/null || true)"
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    # Wait up to 2s for graceful shutdown
+    local waited=0
+    while [ "$waited" -lt 4 ] && kill -0 "$pid" 2>/dev/null; do
+      sleep 0.5
+      waited=$(( waited + 1 ))
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -9 "$pid" 2>/dev/null || true
+    fi
+    REMOVED+=("browse daemon (PID $pid)")
+  fi
+}
+
+# Stop daemon in current project
+if [ -n "$_GIT_ROOT" ] && [ -f "$_GIT_ROOT/.cyberdart/browse.json" ]; then
+  stop_browse_daemon "$_GIT_ROOT/.cyberdart/browse.json"
+fi
+
+# Stop daemons tracked in global projects directory
+if [ -d "$STATE_DIR/projects" ]; then
+  while IFS= read -r _BJ; do
+    stop_browse_daemon "$_BJ"
+  done < <(find "$STATE_DIR/projects" -name browse.json -path '*/.cyberdart/*' 2>/dev/null || true)
+fi
+
+# ─── Remove global Claude skills ────────────────────────────
+CLAUDE_SKILLS="$HOME/.claude/skills"
+if [ -d "$CLAUDE_SKILLS/cyberdart" ] || [ -L "$CLAUDE_SKILLS/cyberdart" ]; then
+  # Remove per-skill symlinks that point into cyberdart/
+  for _LINK in "$CLAUDE_SKILLS"/*; do
+    [ -L "$_LINK" ] || continue
+    _NAME="$(basename "$_LINK")"
+    [ "$_NAME" = "cyberdart" ] && continue
+    _TARGET="$(readlink "$_LINK" 2>/dev/null || true)"
+    case "$_TARGET" in
+      cyberdart/*|*/cyberdart/*) rm -f "$_LINK"; REMOVED+=("claude/$_NAME") ;;
+    esac
+  done
+
+  rm -rf "$CLAUDE_SKILLS/cyberdart"
+  REMOVED+=("~/.claude/skills/cyberdart")
+fi
+
+# ─── Remove project-local Claude skills (--local installs) ──
+if [ -n "$_GIT_ROOT" ] && [ -d "$_GIT_ROOT/.claude/skills" ]; then
+  for _LINK in "$_GIT_ROOT/.claude/skills"/*; do
+    [ -L "$_LINK" ] || continue
+    _TARGET="$(readlink "$_LINK" 2>/dev/null || true)"
+    case "$_TARGET" in
+      cyberdart/*|*/cyberdart/*) rm -f "$_LINK"; REMOVED+=("local claude/$(basename "$_LINK")") ;;
+    esac
+  done
+  if [ -d "$_GIT_ROOT/.claude/skills/cyberdart" ] || [ -L "$_GIT_ROOT/.claude/skills/cyberdart" ]; then
+    rm -rf "$_GIT_ROOT/.claude/skills/cyberdart"
+    REMOVED+=("$_GIT_ROOT/.claude/skills/cyberdart")
+  fi
+fi
+
+# ─── Remove Codex skills ────────────────────────────────────
+CODEX_SKILLS="$HOME/.codex/skills"
+if [ -d "$CODEX_SKILLS" ]; then
+  for _ITEM in "$CODEX_SKILLS"/cyberdart*; do
+    [ -e "$_ITEM" ] || [ -L "$_ITEM" ] || continue
+    rm -rf "$_ITEM"
+    REMOVED+=("codex/$(basename "$_ITEM")")
+  done
+fi
+
+# ─── Remove Factory Droid skills ────────────────────────────
+FACTORY_SKILLS="$HOME/.factory/skills"
+if [ -d "$FACTORY_SKILLS" ]; then
+  for _ITEM in "$FACTORY_SKILLS"/cyberdart*; do
+    [ -e "$_ITEM" ] || [ -L "$_ITEM" ] || continue
+    rm -rf "$_ITEM"
+    REMOVED+=("factory/$(basename "$_ITEM")")
+  done
+fi
+
+# ─── Remove Kiro skills ─────────────────────────────────────
+KIRO_SKILLS="$HOME/.kiro/skills"
+if [ -d "$KIRO_SKILLS" ]; then
+  for _ITEM in "$KIRO_SKILLS"/cyberdart*; do
+    [ -e "$_ITEM" ] || [ -L "$_ITEM" ] || continue
+    rm -rf "$_ITEM"
+    REMOVED+=("kiro/$(basename "$_ITEM")")
+  done
+fi
+
+# ─── Remove per-project .agents/ sidecar ─────────────────────
+if [ -n "$_GIT_ROOT" ] && [ -d "$_GIT_ROOT/.agents/skills" ]; then
+  for _ITEM in "$_GIT_ROOT/.agents/skills"/cyberdart*; do
+    [ -e "$_ITEM" ] || [ -L "$_ITEM" ] || continue
+    rm -rf "$_ITEM"
+    REMOVED+=("agents/$(basename "$_ITEM")")
+  done
+
+  rmdir "$_GIT_ROOT/.agents/skills" 2>/dev/null || true
+  rmdir "$_GIT_ROOT/.agents" 2>/dev/null || true
+fi
+
+# ─── Remove per-project .factory/ sidecar ────────────────────
+if [ -n "$_GIT_ROOT" ] && [ -d "$_GIT_ROOT/.factory/skills" ]; then
+  for _ITEM in "$_GIT_ROOT/.factory/skills"/cyberdart*; do
+    [ -e "$_ITEM" ] || [ -L "$_ITEM" ] || continue
+    rm -rf "$_ITEM"
+    REMOVED+=("factory/$(basename "$_ITEM")")
+  done
+
+  rmdir "$_GIT_ROOT/.factory/skills" 2>/dev/null || true
+  rmdir "$_GIT_ROOT/.factory" 2>/dev/null || true
+fi
+
+# ─── Remove per-project state ───────────────────────────────
+if [ -n "$_GIT_ROOT" ]; then
+  if [ -d "$_GIT_ROOT/.cyberdart" ]; then
+    rm -rf "$_GIT_ROOT/.cyberdart"
+    REMOVED+=("$_GIT_ROOT/.cyberdart/")
+  fi
+  if [ -d "$_GIT_ROOT/.cyberdart-worktrees" ]; then
+    rm -rf "$_GIT_ROOT/.cyberdart-worktrees"
+    REMOVED+=("$_GIT_ROOT/.cyberdart-worktrees/")
+  fi
+fi
+
+# ─── Remove SessionStart hook from Claude Code settings ─────
+SETTINGS_HOOK="$(dirname "$0")/cyberdart-settings-hook"
+SESSION_UPDATE="$(dirname "$0")/cyberdart-session-update"
+if [ -x "$SETTINGS_HOOK" ]; then
+  "$SETTINGS_HOOK" remove "$SESSION_UPDATE" 2>/dev/null && REMOVED+=("SessionStart hook") || true
+fi
+
+# ─── Remove global state ────────────────────────────────────
+if [ "$KEEP_STATE" -eq 0 ] && [ -d "$STATE_DIR" ]; then
+  rm -rf "$STATE_DIR"
+  REMOVED+=("$STATE_DIR")
+fi
+
+# ─── Clean up temp files ────────────────────────────────────
+for _TMP in /tmp/cyberdart-latest-version /tmp/cyberdart-sketch-*.html /tmp/cyberdart-sketch.png /tmp/cyberdart-sync-*; do
+  if [ -e "$_TMP" ]; then
+    rm -f "$_TMP"
+    REMOVED+=("$(basename "$_TMP")")
+  fi
+done
+
+# ─── Summary ────────────────────────────────────────────────
+if [ ${#REMOVED[@]} -gt 0 ]; then
+  echo "Removed: ${REMOVED[*]}"
+  echo "cyberdart uninstalled."
+else
+  echo "Nothing to remove — cyberdart is not installed."
+fi
+
+exit 0

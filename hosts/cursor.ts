@@ -6,8 +6,8 @@ const cursor: HostConfig = {
   cliCommand: 'cursor',
   cliAliases: [],
 
-  globalRoot: '.cursor/skills/gstack',
-  localSkillRoot: '.cursor/skills/gstack',
+  globalRoot: '.cursor/skills/cyberdart',
+  localSkillRoot: '.cursor/skills/cyberdart',
   hostSubdir: '.cursor',
   usesEnvVars: true,
 
@@ -23,15 +23,15 @@ const cursor: HostConfig = {
   },
 
   pathRewrites: [
-    { from: '~/.claude/skills/gstack', to: '~/.cursor/skills/gstack' },
-    { from: '.claude/skills/gstack', to: '.cursor/skills/gstack' },
+    { from: '~/.claude/skills/cyberdart', to: '~/.cursor/skills/cyberdart' },
+    { from: '.claude/skills/cyberdart', to: '.cursor/skills/cyberdart' },
     { from: '.claude/skills', to: '.cursor/skills' },
   ],
 
   suppressedResolvers: ['GBRAIN_CONTEXT_LOAD', 'GBRAIN_SAVE_RESULTS'],
 
   runtimeRoot: {
-    globalSymlinks: ['bin', 'browse/dist', 'browse/bin', 'gstack-upgrade', 'ETHOS.md'],
+    globalSymlinks: ['bin', 'browse/dist', 'browse/bin', 'cyberdart-upgrade', 'ETHOS.md'],
     globalFiles: {
       'review': ['checklist.md', 'TODOS-format.md'],
     },

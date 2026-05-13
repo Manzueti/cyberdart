@@ -1,5 +1,5 @@
 /**
- * gstack browse server — persistent Chromium daemon
+ * cyberdart browse server — persistent Chromium daemon
  *
  * Architecture:
  *   Bun.serve HTTP on localhost → routes commands to Playwright
@@ -8,8 +8,8 @@
  *   Auto-shutdown after BROWSE_IDLE_TIMEOUT (default 30 min)
  *
  * State:
- *   State file: <project-root>/.gstack/browse.json (set via BROWSE_STATE_FILE env)
- *   Log files:  <project-root>/.gstack/browse-{console,network,dialog}.log
+ *   State file: <project-root>/.cyberdart/browse.json (set via BROWSE_STATE_FILE env)
+ *   Log files:  <project-root>/.cyberdart/browse-{console,network,dialog}.log
  *   Port:       random 10000-60000 (or BROWSE_PORT env for debug override)
  */
 
@@ -147,7 +147,7 @@ export function canDispatchOverTunnel(command: string | undefined | null): boole
 }
 
 /**
- * Read ngrok authtoken from env var, ~/.gstack/ngrok.env, or ngrok's native
+ * Read ngrok authtoken from env var, ~/.cyberdart/ngrok.env, or ngrok's native
  * config files.  Returns null if nothing found.  Shared between the
  * /tunnel/start handler and the BROWSE_TUNNEL=1 auto-start flow.
  */
@@ -156,7 +156,7 @@ function resolveNgrokAuthtoken(): string | null {
   if (authtoken) return authtoken;
 
   const home = process.env.HOME || '';
-  const ngrokEnvPath = path.join(home, '.gstack', 'ngrok.env');
+  const ngrokEnvPath = path.join(home, '.cyberdart', 'ngrok.env');
   if (fs.existsSync(ngrokEnvPath)) {
     try {
       const envContent = fs.readFileSync(ngrokEnvPath, 'utf-8');
@@ -285,7 +285,7 @@ function generateHelpText(): string {
     'Visual', 'Snapshot', 'Meta', 'Tabs', 'Server',
   ];
 
-  const lines = ['gstack browse — headless browser for AI agents', '', 'Commands:'];
+  const lines = ['cyberdart browse — headless browser for AI agents', '', 'Commands:'];
   for (const cat of categoryOrder) {
     const cmds = groups.get(cat);
     if (!cmds) continue;
@@ -437,7 +437,7 @@ const BROWSE_PARENT_PID = parseInt(process.env.BROWSE_PARENT_PID || '0', 10);
 // Outer gate: if the spawner explicitly marks this as headed (env var set at
 // launch time), skip registering the watchdog entirely. Cheaper than entering
 // the closure every 15s. The CLI's connect path sets BROWSE_HEADED=1 + PID=0,
-// so this branch is the normal path for /open-gstack-browser.
+// so this branch is the normal path for /open-cyberdart-browser.
 const IS_HEADED_WATCHDOG = process.env.BROWSE_HEADED === '1';
 if (BROWSE_PARENT_PID > 0 && !IS_HEADED_WATCHDOG) {
   let parentGone = false;
@@ -452,7 +452,7 @@ if (BROWSE_PARENT_PID > 0 && !IS_HEADED_WATCHDOG) {
       // 2. Headed / tunnel mode? Shutdown. The idle timeout doesn't apply in
       //    these modes (see idleCheckInterval above — both early-return), so
       //    ignoring parent death here would leak orphan daemons after
-      //    /pair-agent or /open-gstack-browser sessions.
+      //    /pair-agent or /open-cyberdart-browser sessions.
       // 3. Normal (headless) mode? Stay alive. Claude Code's Bash tool kills
       //    the parent shell between invocations. The idle timeout (30 min)
       //    handles eventual cleanup.
@@ -965,7 +965,7 @@ async function shutdown(exitCode: number = 0) {
   await browserManager.close();
 
   // Clean up Chromium profile locks (prevent SingletonLock on next launch)
-  const profileDir = path.join(process.env.HOME || '/tmp', '.gstack', 'chromium-profile');
+  const profileDir = path.join(process.env.HOME || '/tmp', '.cyberdart', 'chromium-profile');
   for (const lockFile of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {
     safeUnlinkQuiet(path.join(profileDir, lockFile));
   }
@@ -1045,7 +1045,7 @@ function emergencyCleanup() {
   } catch { /* state file unparseable — fall through to lock + state cleanup */ }
 
   // Clean Chromium profile locks
-  const profileDir = path.join(process.env.HOME || '/tmp', '.gstack', 'chromium-profile');
+  const profileDir = path.join(process.env.HOME || '/tmp', '.cyberdart', 'chromium-profile');
   for (const lockFile of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {
     safeUnlinkQuiet(path.join(profileDir, lockFile));
   }
@@ -1187,7 +1187,7 @@ async function start() {
   //
   // On the tunnel surface: reject anything not in TUNNEL_PATHS (404), reject
   // root-token bearers (403), and require a scoped token for everything
-  // except /connect.  Denials are logged to ~/.gstack/security/attempts.jsonl.
+  // except /connect.  Denials are logged to ~/.cyberdart/security/attempts.jsonl.
   const makeFetchHandler = (surface: Surface) => async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
 
@@ -1242,21 +1242,21 @@ async function start() {
       // Welcome page — served when GStack Browser launches in headed mode
       if (url.pathname === '/welcome') {
         const welcomePath = (() => {
-          // Gate GSTACK_SLUG on a strict regex BEFORE interpolating it into
+          // Gate CYBERDART_SLUG on a strict regex BEFORE interpolating it into
           // the filesystem path. Without this, a slug like "../../etc/passwd"
-          // would resolve to ~/.gstack/projects/../../etc/passwd/... — path
+          // would resolve to ~/.cyberdart/projects/../../etc/passwd/... — path
           // traversal.  Not exploitable today (attacker needs local env-var
           // access), but the gate is one regex and buys us defense-in-depth.
-          const rawSlug = process.env.GSTACK_SLUG || 'unknown';
+          const rawSlug = process.env.CYBERDART_SLUG || 'unknown';
           const slug = /^[a-z0-9_-]+$/.test(rawSlug) ? rawSlug : 'unknown';
           const homeDir = process.env.HOME || process.env.USERPROFILE || '/tmp';
-          const projectWelcome = `${homeDir}/.gstack/projects/${slug}/designs/welcome-page-20260331/finalized.html`;
+          const projectWelcome = `${homeDir}/.cyberdart/projects/${slug}/designs/welcome-page-20260331/finalized.html`;
           if (fs.existsSync(projectWelcome)) return projectWelcome;
-          // Fallback: built-in welcome page from gstack install.  Reject
+          // Fallback: built-in welcome page from cyberdart install.  Reject
           // SKILL_ROOT values containing '..' for the same defense-in-depth
-          // reason as the GSTACK_SLUG regex above.  Not exploitable today
+          // reason as the CYBERDART_SLUG regex above.  Not exploitable today
           // (env set at install time), but the gate is one check.
-          const rawSkillRoot = process.env.GSTACK_SKILL_ROOT || `${homeDir}/.claude/skills/gstack`;
+          const rawSkillRoot = process.env.CYBERDART_SKILL_ROOT || `${homeDir}/.claude/skills/cyberdart`;
           if (rawSkillRoot.includes('..')) return null;
           const builtinWelcome = `${rawSkillRoot}/browse/src/welcome.html`;
           if (fs.existsSync(builtinWelcome)) return builtinWelcome;
@@ -1577,7 +1577,7 @@ async function start() {
           await closeTunnel();
         }
 
-        // 1) Resolve ngrok authtoken from env / .gstack / native config
+        // 1) Resolve ngrok authtoken from env / .cyberdart / native config
         const authtoken = resolveNgrokAuthtoken();
         if (!authtoken) {
           return new Response(JSON.stringify({
@@ -2204,7 +2204,7 @@ async function start() {
   if (process.env.BROWSE_TUNNEL === '1') {
     const authtoken = resolveNgrokAuthtoken();
     if (!authtoken) {
-      console.error('[browse] BROWSE_TUNNEL=1 but no NGROK_AUTHTOKEN found. Set it via env var or ~/.gstack/ngrok.env');
+      console.error('[browse] BROWSE_TUNNEL=1 but no NGROK_AUTHTOKEN found. Set it via env var or ~/.cyberdart/ngrok.env');
     } else {
       let boundTunnel: ReturnType<typeof Bun.serve> | null = null;
       try {

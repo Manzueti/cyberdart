@@ -5,10 +5,10 @@ import * as path from 'path';
 const ROOT = path.resolve(import.meta.dir, '..');
 
 const OPENCLAW_NATIVE_SKILLS = [
-  'openclaw/skills/gstack-openclaw-investigate/SKILL.md',
-  'openclaw/skills/gstack-openclaw-office-hours/SKILL.md',
-  'openclaw/skills/gstack-openclaw-ceo-review/SKILL.md',
-  'openclaw/skills/gstack-openclaw-retro/SKILL.md',
+  'openclaw/skills/cyberdart-openclaw-investigate/SKILL.md',
+  'openclaw/skills/cyberdart-openclaw-office-hours/SKILL.md',
+  'openclaw/skills/cyberdart-openclaw-ceo-review/SKILL.md',
+  'openclaw/skills/cyberdart-openclaw-retro/SKILL.md',
 ];
 
 function extractFrontmatter(content: string): string {

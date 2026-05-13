@@ -4,7 +4,9 @@ dist/
 browse/dist/
 design/dist/
 make-pdf/dist/
-bin/gstack-global-discover
+bin/cyberdart-global-discover*
+bin/gstack-global-discover*
+.cyberdart/
 .gstack/
 .claude/skills/
 .claude/scheduled_tasks.lock
@@ -25,6 +27,7 @@ extension/.auth.json
 extension/lib/xterm.js
 extension/lib/xterm.css
 extension/lib/xterm-addon-fit.js
+.cyberdart-worktrees/
 .gstack-worktrees/
 /tmp/
 *.log

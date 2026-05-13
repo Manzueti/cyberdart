@@ -1,5 +1,5 @@
 /**
- * Question Registry — typed schema for AskUserQuestion invocations across gstack.
+ * Question Registry — typed schema for AskUserQuestion invocations across cyberdart.
  *
  * Purpose
  * -------
@@ -10,7 +10,7 @@
  * - One-way door safety is declared here, not inferred from prose summaries
  * - The psychographic signal map (scripts/psychographic-signals.ts) maps id → dimension delta
  *
- * Not every AskUserQuestion in gstack needs a registry entry right away. Skills
+ * Not every AskUserQuestion in cyberdart needs a registry entry right away. Skills
  * often craft questions dynamically at runtime — the agent generates an ad-hoc id
  * of the form `{skill}-{slug}` for those. The /plan-tune skill surfaces frequently-
  * firing ad-hoc ids as candidates for registry promotion.
@@ -74,7 +74,7 @@ export type StandardOption =
 export interface QuestionDef {
   /** Stable kebab-case id: `{skill}-{semantic-description}` */
   id: string;
-  /** Skill that owns this question (must match a gstack skill directory name) */
+  /** Skill that owns this question (must match a cyberdart skill directory name) */
   skill: string;
   /** Shape of the question */
   category: QuestionCategory;
@@ -487,15 +487,15 @@ export const QUESTIONS = {
   },
 
   // -----------------------------------------------------------------------
-  // /gstack-upgrade — version upgrade
+  // /cyberdart-upgrade — version upgrade
   // -----------------------------------------------------------------------
-  'gstack-upgrade-inline': {
-    id: 'gstack-upgrade-inline',
-    skill: 'gstack-upgrade',
+  'cyberdart-upgrade-inline': {
+    id: 'cyberdart-upgrade-inline',
+    skill: 'cyberdart-upgrade',
     category: 'approval',
     door_type: 'two-way',
     options: ['yes-upgrade', 'always-auto', 'not-now', 'never-ask'],
-    description: "Upgrade gstack now? (Also: always auto-upgrade, snooze, or disable the prompt.)",
+    description: "Upgrade cyberdart now? (Also: always auto-upgrade, snooze, or disable the prompt.)",
   },
 
   // -----------------------------------------------------------------------
@@ -507,7 +507,7 @@ export const QUESTIONS = {
     category: 'approval',
     door_type: 'two-way',
     options: ['community', 'anonymous', 'off'],
-    description: "Share usage data with gstack? community (recommended) / anonymous / off",
+    description: "Share usage data with cyberdart? community (recommended) / anonymous / off",
   },
   'preamble-proactive-behavior': {
     id: 'preamble-proactive-behavior',
@@ -515,7 +515,7 @@ export const QUESTIONS = {
     category: 'approval',
     door_type: 'two-way',
     options: ['on', 'off'],
-    description: "Let gstack proactively suggest skills based on conversation context?",
+    description: "Let cyberdart proactively suggest skills based on conversation context?",
   },
   'preamble-routing-injection': {
     id: 'preamble-routing-injection',
@@ -523,7 +523,7 @@ export const QUESTIONS = {
     category: 'approval',
     door_type: 'two-way',
     options: ['accept', 'decline'],
-    description: "Add gstack skill routing rules to CLAUDE.md?",
+    description: "Add cyberdart skill routing rules to CLAUDE.md?",
   },
   'preamble-vendored-migration': {
     id: 'preamble-vendored-migration',
@@ -531,7 +531,7 @@ export const QUESTIONS = {
     category: 'approval',
     door_type: 'two-way',
     options: ['accept', 'keep-vendored'],
-    description: "This repo has vendored gstack (deprecated) — migrate to team mode?",
+    description: "This repo has vendored cyberdart (deprecated) — migrate to team mode?",
   },
   'preamble-completeness-intro': {
     id: 'preamble-completeness-intro',

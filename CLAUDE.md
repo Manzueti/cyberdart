@@ -1,4 +1,4 @@
-# gstack development
+# cyberdart development
 
 ## Commands
 
@@ -17,7 +17,7 @@ bun run build        # gen docs + compile binaries
 bun run gen:skill-docs  # regenerate SKILL.md files from templates
 bun run skill:check  # health dashboard for all skills
 bun run dev:skill    # watch mode: auto-regen + validate on change
-bun run eval:list    # list all eval runs from ~/.gstack-dev/evals/
+bun run eval:list    # list all eval runs from ~/.cyberdart-dev/evals/
 bun run eval:compare # compare two eval runs (auto-picks most recent)
 bun run eval:summary # aggregate stats across all eval runs
 bun run slop          # full slop-scan report (all files)
@@ -47,7 +47,7 @@ the key the same way when env is supplied as an object (confirmed failure mode).
 Instead, mutate `process.env.ANTHROPIC_API_KEY` ambiently before the call and
 restore in `finally`.
 E2E tests stream progress in real-time (tool-by-tool via `--output-format stream-json
---verbose`). Results are persisted to `~/.gstack-dev/evals/` with auto-comparison
+--verbose`). Results are persisted to `~/.cyberdart-dev/evals/` with auto-comparison
 against the previous run.
 
 **Diff-based test selection:** `test:evals` and `test:e2e` auto-select tests based
@@ -78,7 +78,7 @@ tests via `claude -p`. Both must pass before creating a PR.
 ## Project structure
 
 ```
-gstack/
+cyberdart/
 ├── browse/          # Headless browser CLI (Playwright)
 │   ├── src/         # CLI + server + commands
 │   │   ├── commands.ts  # Command registry (single source of truth)
@@ -121,13 +121,13 @@ gstack/
 ├── office-hours/    # /office-hours skill (YC Office Hours — startup diagnostic + builder brainstorm)
 ├── investigate/     # /investigate skill (systematic root-cause debugging)
 ├── retro/           # Retrospective skill (includes /retro global cross-project mode)
-├── bin/             # CLI utilities (gstack-repo-mode, gstack-slug, gstack-config, etc.)
+├── bin/             # CLI utilities (cyberdart-repo-mode, cyberdart-slug, cyberdart-config, etc.)
 ├── document-release/ # /document-release skill (post-ship doc updates)
 ├── cso/             # /cso skill (OWASP Top 10 + STRIDE security audit)
 ├── design-consultation/ # /design-consultation skill (design system from scratch)
 ├── design-shotgun/  # /design-shotgun skill (visual design exploration)
-├── open-gstack-browser/  # /open-gstack-browser skill (launch GStack Browser)
-├── connect-chrome/  # symlink → open-gstack-browser (backwards compat)
+├── open-cyberdart-browser/  # /open-cyberdart-browser skill (launch GStack Browser)
+├── connect-chrome/  # symlink → open-cyberdart-browser (backwards compat)
 ├── design/          # Design binary CLI (GPT Image API)
 │   ├── src/         # CLI + commands (generate, variants, compare, serve, etc.)
 │   ├── test/        # Integration tests
@@ -140,7 +140,7 @@ gstack/
 │   ├── workflows/   # evals.yml (E2E on Ubicloud), skill-docs.yml, actionlint.yml
 │   └── docker/      # Dockerfile.ci (pre-baked toolchain + Playwright/Chromium)
 ├── contrib/         # Contributor-only tools (never installed for users)
-│   └── add-host/    # /gstack-contrib-add-host skill
+│   └── add-host/    # /cyberdart-contrib-add-host skill
 ├── setup            # One-time setup: build binary + symlink skills
 ├── SKILL.md         # Generated from SKILL.md.tmpl (don't edit directly)
 ├── SKILL.md.tmpl    # Template: edit this, run gen:skill-docs
@@ -182,11 +182,11 @@ Skills must NEVER hardcode framework-specific commands, file patterns, or direct
 structures. Instead:
 
 1. **Read CLAUDE.md** for project-specific config (test commands, eval commands, etc.)
-2. **If missing, AskUserQuestion** — let the user tell you or let gstack search the repo
+2. **If missing, AskUserQuestion** — let the user tell you or let cyberdart search the repo
 3. **Persist the answer to CLAUDE.md** so we never have to ask again
 
 This applies to test commands, eval commands, deploy commands, and any other
-project-specific behavior. The project owns its config; gstack reads it.
+project-specific behavior. The project owns its config; cyberdart reads it.
 
 ## Writing SKILL templates
 
@@ -212,7 +212,7 @@ Default output from every tier-≥2 skill follows the Writing Style section in
 `scripts/jargon-list.json`, baked at gen-skill-docs time), questions framed in
 outcome terms ("what breaks for your users if...") not implementation terms,
 short sentences, decisions close with user impact. Power users who want the
-tighter V0 prose set `gstack-config set explain_level terse` (binary switch,
+tighter V0 prose set `cyberdart-config set explain_level terse` (binary switch,
 no middle mode). See `docs/designs/PLAN_TUNING_V1.md` for the full design
 rationale. The review pacing overhaul that originally tried to ride alongside
 writing-style was extracted to V1.1 — see `docs/designs/PACING_UPDATES_V0.md`.
@@ -240,13 +240,13 @@ can't set `Authorization` on a WebSocket upgrade, but they CAN set
 `Sec-WebSocket-Protocol` via `new WebSocket(url, [token])`. The agent
 reads it, validates against `validTokens`, and MUST echo the protocol
 back in the upgrade response — without the echo, Chromium closes the
-connection immediately. `Set-Cookie: gstack_pty=...` is kept as a
+connection immediately. `Set-Cookie: cyberdart_pty=...` is kept as a
 fallback for non-browser callers (the cross-port `SameSite=Strict`
 cookie path doesn't survive from a chrome-extension origin).
 
 **Cross-pane PTY injection.** The toolbar's Cleanup button and the
 Inspector's "Send to Code" action both pipe text into the live claude
-PTY via `window.gstackInjectToTerminal(text)`, exposed by
+PTY via `window.cyberdartInjectToTerminal(text)`, exposed by
 `sidepanel-terminal.js`. No `/sidebar-command` POST — the live REPL is
 the only execution surface in the sidebar now.
 
@@ -260,9 +260,9 @@ the daemon binds two HTTP listeners: a local listener (127.0.0.1, full command
 surface, never forwarded) and a tunnel listener (locked allowlist: `/connect`,
 `/command` with a scoped token + 26-command browser-driving allowlist,
 `/sidebar-chat`). ngrok forwards only the tunnel port. Root tokens over the tunnel
-return 403. SSE endpoints use a 30-minute HttpOnly `gstack_sse` cookie minted via
+return 403. SSE endpoints use a 30-minute HttpOnly `cyberdart_sse` cookie minted via
 `POST /sse-session` (never valid against `/command`). Tunnel-surface rejections go
-to `~/.gstack/security/attempts.jsonl` via `tunnel-denial-log.ts`. Before editing
+to `~/.cyberdart/security/attempts.jsonl` via `tunnel-denial-log.ts`. Before editing
 `server.ts`, `sse-session-cookie.ts`, or `tunnel-denial-log.ts`, read
 [ARCHITECTURE.md](ARCHITECTURE.md#dual-listener-tunnel-architecture-v1600) —
 the module boundary (no imports from `token-registry.ts` into `sse-session-cookie.ts`)
@@ -282,7 +282,7 @@ is load-bearing for scope isolation.
 compiled browse binary. `@huggingface/transformers` v4 requires `onnxruntime-node`
 which fails to `dlopen` from Bun compile's temp extract dir. Only `security.ts`
 (pure-string operations — canary, verdict combiner, attack log, status) is safe
-for `server.ts`. See `~/.gstack/projects/garrytan-gstack/ceo-plans/2026-04-19-prompt-injection-guard.md`
+for `server.ts`. See `~/.cyberdart/projects/garrytan-cyberdart/ceo-plans/2026-04-19-prompt-injection-guard.md`
 §"Pre-Impl Gate 1 Outcome" for full architectural decision.
 
 **Thresholds** (in `security.ts`):
@@ -300,53 +300,53 @@ this is the Stack Overflow instruction-writing FP mitigation. Canary leak
 always BLOCKs (deterministic).
 
 **Env knobs:**
-- `GSTACK_SECURITY_OFF=1` — emergency kill switch. Classifier stays off even if
+- `CYBERDART_SECURITY_OFF=1` — emergency kill switch. Classifier stays off even if
   warmed. Canary is still injected; just the ML scan is skipped.
-- `GSTACK_SECURITY_ENSEMBLE=deberta` — opt-in DeBERTa-v3 ensemble. Adds
+- `CYBERDART_SECURITY_ENSEMBLE=deberta` — opt-in DeBERTa-v3 ensemble. Adds
   ProtectAI DeBERTa-v3-base-injection-onnx as L4c classifier for cross-model
   agreement. 721MB first-run download. With ensemble enabled, BLOCK requires
   2-of-3 ML classifiers agreeing at >= WARN (testsavant, deberta, transcript).
   Without ensemble (default), BLOCK requires testsavant + transcript at >= WARN.
-- Classifier model cache: `~/.gstack/models/testsavant-small/` (112MB, first run only)
-  plus `~/.gstack/models/deberta-v3-injection/` (721MB, only when ensemble enabled)
-- Attack log: `~/.gstack/security/attempts.jsonl` (salted sha256 + domain only,
+- Classifier model cache: `~/.cyberdart/models/testsavant-small/` (112MB, first run only)
+  plus `~/.cyberdart/models/deberta-v3-injection/` (721MB, only when ensemble enabled)
+- Attack log: `~/.cyberdart/security/attempts.jsonl` (salted sha256 + domain only,
   rotates at 10MB, 5 generations)
-- Per-device salt: `~/.gstack/security/device-salt` (0600)
-- Session state: `~/.gstack/security/session-state.json` (cross-process, atomic)
+- Per-device salt: `~/.cyberdart/security/device-salt` (0600)
+- Session state: `~/.cyberdart/security/session-state.json` (cross-process, atomic)
 
 ## Dev symlink awareness
 
-When developing gstack, `.claude/skills/gstack` may be a symlink back to this
+When developing cyberdart, `.claude/skills/cyberdart` may be a symlink back to this
 working directory (gitignored). This means skill changes are **live immediately**,
 great for rapid iteration, risky during big refactors where half-written skills
-could break other Claude Code sessions using gstack concurrently.
+could break other Claude Code sessions using cyberdart concurrently.
 
-**Check once per session:** Run `ls -la .claude/skills/gstack` to see if it's a
+**Check once per session:** Run `ls -la .claude/skills/cyberdart` to see if it's a
 symlink or a real copy. If it's a symlink to your working directory, be aware that:
-- Template changes + `bun run gen:skill-docs` immediately affect all gstack invocations
-- Breaking changes to SKILL.md.tmpl files can break concurrent gstack sessions
-- During large refactors, remove the symlink (`rm .claude/skills/gstack`) so the
-  global install at `~/.claude/skills/gstack/` is used instead
+- Template changes + `bun run gen:skill-docs` immediately affect all cyberdart invocations
+- Breaking changes to SKILL.md.tmpl files can break concurrent cyberdart sessions
+- During large refactors, remove the symlink (`rm .claude/skills/cyberdart`) so the
+  global install at `~/.claude/skills/cyberdart/` is used instead
 
 **Prefix setting:** Setup creates real directories (not symlinks) at the top level
-with a SKILL.md symlink inside (e.g., `qa/SKILL.md -> gstack/qa/SKILL.md`). This
-ensures Claude discovers them as top-level skills, not nested under `gstack/`.
-Names are either short (`qa`) or namespaced (`gstack-qa`), controlled by
-`skill_prefix` in `~/.gstack/config.yaml`. Pass `--no-prefix` or `--prefix` to
+with a SKILL.md symlink inside (e.g., `qa/SKILL.md -> cyberdart/qa/SKILL.md`). This
+ensures Claude discovers them as top-level skills, not nested under `cyberdart/`.
+Names are either short (`qa`) or namespaced (`cyberdart-qa`), controlled by
+`skill_prefix` in `~/.cyberdart/config.yaml`. Pass `--no-prefix` or `--prefix` to
 skip the interactive prompt.
 
-**Note:** Vendoring gstack into a project's repo is deprecated. Use global install
+**Note:** Vendoring cyberdart into a project's repo is deprecated. Use global install
 + `./setup --team` instead. See README.md for team mode instructions.
 
 **For plan reviews:** When reviewing plans that modify skill templates or the
 gen-skill-docs pipeline, consider whether the changes should be tested in isolation
-before going live (especially if the user is actively using gstack in other windows).
+before going live (especially if the user is actively using cyberdart in other windows).
 
 **Upgrade migrations:** When a change modifies on-disk state (directory structure,
 config format, stale files) in ways that could break existing user installs, add a
-migration script to `gstack-upgrade/migrations/`. Read CONTRIBUTING.md's "Upgrade
+migration script to `cyberdart-upgrade/migrations/`. Read CONTRIBUTING.md's "Upgrade
 migrations" section for the format and testing requirements. The upgrade skill runs
-these automatically after `./setup` during `/gstack-upgrade`.
+these automatically after `./setup` during `/cyberdart-upgrade`.
 
 ## Compiled binaries — NEVER commit browse/dist/ or design/dist/
 
@@ -461,7 +461,7 @@ claimed version within the same bump level is explicitly permitted — if branch
 claims v1.7.0.0 as a MINOR and branch B is also a MINOR, B lands at v1.8.0.0
 (still a MINOR relative to main). Downstream consumers must NOT rely on
 "MINOR = feature-only, PATCH = fix-only" as a strict contract. This is why
-`bin/gstack-next-version` advances within the chosen bump level rather than
+`bin/cyberdart-next-version` advances within the chosen bump level rather than
 repicking the level when collisions happen.
 
 **Scale-aware bumps — use common sense.** When the diff is big, bump MINOR (or
@@ -640,9 +640,9 @@ above, plus:
 
 ## AI effort compression
 
-When estimating or discussing effort, always show both human-team and CC+gstack time:
+When estimating or discussing effort, always show both human-team and CC+cyberdart time:
 
-| Task type | Human team | CC+gstack | Compression |
+| Task type | Human team | CC+cyberdart | Compression |
 |-----------|-----------|-----------|-------------|
 | Boilerplate / scaffolding | 2 days | 15 min | ~100x |
 | Test writing | 1 day | 15 min | ~50x |
@@ -670,7 +670,7 @@ builder philosophy.
 
 ## Local plans
 
-Contributors can store long-range vision docs and design documents in `~/.gstack-dev/plans/`.
+Contributors can store long-range vision docs and design documents in `~/.cyberdart-dev/plans/`.
 These are local-only (not checked in). When reviewing TODOS.md, check `plans/` for candidates
 that may be ready to promote to TODOs or implement.
 
@@ -728,38 +728,38 @@ Also when running targeted E2E tests to debug failures:
 
 ## Publishing native OpenClaw skills to ClawHub
 
-Native OpenClaw skills live in `openclaw/skills/gstack-openclaw-*/SKILL.md`. These are
+Native OpenClaw skills live in `openclaw/skills/cyberdart-openclaw-*/SKILL.md`. These are
 hand-crafted methodology skills (not generated by the pipeline) published to ClawHub
 so any OpenClaw user can install them.
 
 **Publishing:** The command is `clawhub publish` (NOT `clawhub skill publish`):
 
 ```bash
-clawhub publish openclaw/skills/gstack-openclaw-office-hours \
-  --slug gstack-openclaw-office-hours --name "gstack Office Hours" \
+clawhub publish openclaw/skills/cyberdart-openclaw-office-hours \
+  --slug cyberdart-openclaw-office-hours --name "cyberdart Office Hours" \
   --version 1.0.0 --changelog "description of changes"
 ```
 
-Repeat for each skill: `gstack-openclaw-ceo-review`, `gstack-openclaw-investigate`,
-`gstack-openclaw-retro`. Bump `--version` on each update.
+Repeat for each skill: `cyberdart-openclaw-ceo-review`, `cyberdart-openclaw-investigate`,
+`cyberdart-openclaw-retro`. Bump `--version` on each update.
 
 **Auth:** `clawhub login` (opens browser for GitHub auth). `clawhub whoami` to verify.
 
 **Updating:** Same `clawhub publish` command with a higher `--version` and `--changelog`.
 
-**Verification:** `clawhub search gstack` to confirm they're live.
+**Verification:** `clawhub search cyberdart` to confirm they're live.
 
 ## Deploying to the active skill
 
-The active skill lives at `~/.claude/skills/gstack/`. After making changes:
+The active skill lives at `~/.claude/skills/cyberdart/`. After making changes:
 
 1. Push your branch
-2. Fetch and reset in the skill directory: `cd ~/.claude/skills/gstack && git fetch origin && git reset --hard origin/main`
-3. Rebuild: `cd ~/.claude/skills/gstack && bun run build`
+2. Fetch and reset in the skill directory: `cd ~/.claude/skills/cyberdart && git fetch origin && git reset --hard origin/main`
+3. Rebuild: `cd ~/.claude/skills/cyberdart && bun run build`
 
 Or copy the binaries directly:
-- `cp browse/dist/browse ~/.claude/skills/gstack/browse/dist/browse`
-- `cp design/dist/design ~/.claude/skills/gstack/design/dist/design`
+- `cp browse/dist/browse ~/.claude/skills/cyberdart/browse/dist/browse`
+- `cp design/dist/design ~/.claude/skills/cyberdart/design/dist/design`
 
 ## Skill routing
 
@@ -780,7 +780,7 @@ Key routing rules:
 - Resume context → invoke /context-restore
 
 ## GBrain Search Guidance (configured by /sync-gbrain)
-<!-- gstack-gbrain-search-guidance:start -->
+<!-- cyberdart-gbrain-search-guidance:start -->
 
 GBrain is set up and synced on this machine. The agent should prefer gbrain
 over Grep when the question is semantic or when you don't know the exact
@@ -796,7 +796,7 @@ match the actual code on disk in this worktree.
 
 Two indexed corpora available via the `gbrain` CLI:
 - This worktree's code (auto-pinned via `.gbrain-source`).
-- `~/.gstack/` curated memory (registered as `gstack-brain-<user>` source via
+- `~/.cyberdart/` curated memory (registered as `cyberdart-brain-<user>` source via
   the existing federation pipeline).
 
 Prefer gbrain when:
@@ -807,11 +807,11 @@ Prefer gbrain when:
 - "What calls Y?" / "What does Y depend on?":
     `gbrain code-callers <symbol>` / `gbrain code-callees <symbol>`
 - "What did we decide last time?" / past plans, retros, learnings:
-    `gbrain search "<terms>" --source gstack-brain-<user>`
+    `gbrain search "<terms>" --source cyberdart-brain-<user>`
 
 Grep is still right for known exact strings, regex, multiline patterns, and
 file globs. Run `/sync-gbrain` after meaningful code changes; for ongoing
 auto-sync across all worktrees, run `gbrain autopilot --install` once per
 machine — gbrain's daemon handles incremental refresh on a schedule.
 
-<!-- gstack-gbrain-search-guidance:end -->
+<!-- cyberdart-gbrain-search-guidance:end -->

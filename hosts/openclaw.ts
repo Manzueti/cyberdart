@@ -6,8 +6,8 @@ const openclaw: HostConfig = {
   cliCommand: 'openclaw',
   cliAliases: [],
 
-  globalRoot: '.openclaw/skills/gstack',
-  localSkillRoot: '.openclaw/skills/gstack',
+  globalRoot: '.openclaw/skills/cyberdart',
+  localSkillRoot: '.openclaw/skills/cyberdart',
   hostSubdir: '.openclaw',
   usesEnvVars: true,
 
@@ -27,8 +27,8 @@ const openclaw: HostConfig = {
   },
 
   pathRewrites: [
-    { from: '~/.claude/skills/gstack', to: '~/.openclaw/skills/gstack' },
-    { from: '.claude/skills/gstack', to: '.openclaw/skills/gstack' },
+    { from: '~/.claude/skills/cyberdart', to: '~/.openclaw/skills/cyberdart' },
+    { from: '.claude/skills/cyberdart', to: '.openclaw/skills/cyberdart' },
     { from: '.claude/skills', to: '.openclaw/skills' },
     { from: 'CLAUDE.md', to: 'AGENTS.md' },
   ],
@@ -58,7 +58,7 @@ const openclaw: HostConfig = {
   ],
 
   runtimeRoot: {
-    globalSymlinks: ['bin', 'browse/dist', 'browse/bin', 'gstack-upgrade', 'ETHOS.md'],
+    globalSymlinks: ['bin', 'browse/dist', 'browse/bin', 'cyberdart-upgrade', 'ETHOS.md'],
     globalFiles: {
       'review': ['checklist.md', 'TODOS-format.md'],
     },

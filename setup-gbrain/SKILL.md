@@ -7,7 +7,7 @@ description: |
   local PGLite or Supabase brain, register MCP, capture per-remote trust
   policy. One command from zero to "gbrain is running, and this agent
   can call it." Use when: "setup gbrain", "connect gbrain", "start
-  gbrain", "install gbrain", "configure gbrain for this machine". (gstack)
+  gbrain", "install gbrain", "configure gbrain for this machine". (cyberdart)
 triggers:
   - setup gbrain
   - install gbrain
@@ -29,78 +29,78 @@ allowed-tools:
 ## Preamble (run first)
 
 ```bash
-_UPD=$(~/.claude/skills/gstack/bin/gstack-update-check 2>/dev/null || .claude/skills/gstack/bin/gstack-update-check 2>/dev/null || true)
+_UPD=$(~/.claude/skills/cyberdart/bin/cyberdart-update-check 2>/dev/null || .claude/skills/cyberdart/bin/cyberdart-update-check 2>/dev/null || true)
 [ -n "$_UPD" ] && echo "$_UPD" || true
-mkdir -p ~/.gstack/sessions
-touch ~/.gstack/sessions/"$PPID"
-_SESSIONS=$(find ~/.gstack/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
-find ~/.gstack/sessions -mmin +120 -type f -exec rm {} + 2>/dev/null || true
-_PROACTIVE=$(~/.claude/skills/gstack/bin/gstack-config get proactive 2>/dev/null || echo "true")
-_PROACTIVE_PROMPTED=$([ -f ~/.gstack/.proactive-prompted ] && echo "yes" || echo "no")
+mkdir -p ~/.cyberdart/sessions
+touch ~/.cyberdart/sessions/"$PPID"
+_SESSIONS=$(find ~/.cyberdart/sessions -mmin -120 -type f 2>/dev/null | wc -l | tr -d ' ')
+find ~/.cyberdart/sessions -mmin +120 -type f -exec rm {} + 2>/dev/null || true
+_PROACTIVE=$(~/.claude/skills/cyberdart/bin/cyberdart-config get proactive 2>/dev/null || echo "true")
+_PROACTIVE_PROMPTED=$([ -f ~/.cyberdart/.proactive-prompted ] && echo "yes" || echo "no")
 _BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
 echo "BRANCH: $_BRANCH"
-_SKILL_PREFIX=$(~/.claude/skills/gstack/bin/gstack-config get skill_prefix 2>/dev/null || echo "false")
+_SKILL_PREFIX=$(~/.claude/skills/cyberdart/bin/cyberdart-config get skill_prefix 2>/dev/null || echo "false")
 echo "PROACTIVE: $_PROACTIVE"
 echo "PROACTIVE_PROMPTED: $_PROACTIVE_PROMPTED"
 echo "SKILL_PREFIX: $_SKILL_PREFIX"
-source <(~/.claude/skills/gstack/bin/gstack-repo-mode 2>/dev/null) || true
+source <(~/.claude/skills/cyberdart/bin/cyberdart-repo-mode 2>/dev/null) || true
 REPO_MODE=${REPO_MODE:-unknown}
 echo "REPO_MODE: $REPO_MODE"
-_LAKE_SEEN=$([ -f ~/.gstack/.completeness-intro-seen ] && echo "yes" || echo "no")
+_LAKE_SEEN=$([ -f ~/.cyberdart/.completeness-intro-seen ] && echo "yes" || echo "no")
 echo "LAKE_INTRO: $_LAKE_SEEN"
-_TEL=$(~/.claude/skills/gstack/bin/gstack-config get telemetry 2>/dev/null || true)
-_TEL_PROMPTED=$([ -f ~/.gstack/.telemetry-prompted ] && echo "yes" || echo "no")
+_TEL=$(~/.claude/skills/cyberdart/bin/cyberdart-config get telemetry 2>/dev/null || true)
+_TEL_PROMPTED=$([ -f ~/.cyberdart/.telemetry-prompted ] && echo "yes" || echo "no")
 _TEL_START=$(date +%s)
 _SESSION_ID="$$-$(date +%s)"
 echo "TELEMETRY: ${_TEL:-off}"
 echo "TEL_PROMPTED: $_TEL_PROMPTED"
-_EXPLAIN_LEVEL=$(~/.claude/skills/gstack/bin/gstack-config get explain_level 2>/dev/null || echo "default")
+_EXPLAIN_LEVEL=$(~/.claude/skills/cyberdart/bin/cyberdart-config get explain_level 2>/dev/null || echo "default")
 if [ "$_EXPLAIN_LEVEL" != "default" ] && [ "$_EXPLAIN_LEVEL" != "terse" ]; then _EXPLAIN_LEVEL="default"; fi
 echo "EXPLAIN_LEVEL: $_EXPLAIN_LEVEL"
-_QUESTION_TUNING=$(~/.claude/skills/gstack/bin/gstack-config get question_tuning 2>/dev/null || echo "false")
+_QUESTION_TUNING=$(~/.claude/skills/cyberdart/bin/cyberdart-config get question_tuning 2>/dev/null || echo "false")
 echo "QUESTION_TUNING: $_QUESTION_TUNING"
-mkdir -p ~/.gstack/analytics
+mkdir -p ~/.cyberdart/analytics
 if [ "$_TEL" != "off" ]; then
-echo '{"skill":"setup-gbrain","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.gstack/analytics/skill-usage.jsonl 2>/dev/null || true
+echo '{"skill":"setup-gbrain","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")'"}'  >> ~/.cyberdart/analytics/skill-usage.jsonl 2>/dev/null || true
 fi
-for _PF in $(find ~/.gstack/analytics -maxdepth 1 -name '.pending-*' 2>/dev/null); do
+for _PF in $(find ~/.cyberdart/analytics -maxdepth 1 -name '.pending-*' 2>/dev/null); do
   if [ -f "$_PF" ]; then
-    if [ "$_TEL" != "off" ] && [ -x "~/.claude/skills/gstack/bin/gstack-telemetry-log" ]; then
-      ~/.claude/skills/gstack/bin/gstack-telemetry-log --event-type skill_run --skill _pending_finalize --outcome unknown --session-id "$_SESSION_ID" 2>/dev/null || true
+    if [ "$_TEL" != "off" ] && [ -x "~/.claude/skills/cyberdart/bin/cyberdart-telemetry-log" ]; then
+      ~/.claude/skills/cyberdart/bin/cyberdart-telemetry-log --event-type skill_run --skill _pending_finalize --outcome unknown --session-id "$_SESSION_ID" 2>/dev/null || true
     fi
     rm -f "$_PF" 2>/dev/null || true
   fi
   break
 done
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" 2>/dev/null || true
-_LEARN_FILE="${GSTACK_HOME:-$HOME/.gstack}/projects/${SLUG:-unknown}/learnings.jsonl"
+eval "$(~/.claude/skills/cyberdart/bin/cyberdart-slug 2>/dev/null)" 2>/dev/null || true
+_LEARN_FILE="${CYBERDART_HOME:-$HOME/.cyberdart}/projects/${SLUG:-unknown}/learnings.jsonl"
 if [ -f "$_LEARN_FILE" ]; then
   _LEARN_COUNT=$(wc -l < "$_LEARN_FILE" 2>/dev/null | tr -d ' ')
   echo "LEARNINGS: $_LEARN_COUNT entries loaded"
   if [ "$_LEARN_COUNT" -gt 5 ] 2>/dev/null; then
-    ~/.claude/skills/gstack/bin/gstack-learnings-search --limit 3 2>/dev/null || true
+    ~/.claude/skills/cyberdart/bin/cyberdart-learnings-search --limit 3 2>/dev/null || true
   fi
 else
   echo "LEARNINGS: 0"
 fi
-~/.claude/skills/gstack/bin/gstack-timeline-log '{"skill":"setup-gbrain","event":"started","branch":"'"$_BRANCH"'","session":"'"$_SESSION_ID"'"}' 2>/dev/null &
+~/.claude/skills/cyberdart/bin/cyberdart-timeline-log '{"skill":"setup-gbrain","event":"started","branch":"'"$_BRANCH"'","session":"'"$_SESSION_ID"'"}' 2>/dev/null &
 _HAS_ROUTING="no"
 if [ -f CLAUDE.md ] && grep -q "## Skill routing" CLAUDE.md 2>/dev/null; then
   _HAS_ROUTING="yes"
 fi
-_ROUTING_DECLINED=$(~/.claude/skills/gstack/bin/gstack-config get routing_declined 2>/dev/null || echo "false")
+_ROUTING_DECLINED=$(~/.claude/skills/cyberdart/bin/cyberdart-config get routing_declined 2>/dev/null || echo "false")
 echo "HAS_ROUTING: $_HAS_ROUTING"
 echo "ROUTING_DECLINED: $_ROUTING_DECLINED"
 _VENDORED="no"
-if [ -d ".claude/skills/gstack" ] && [ ! -L ".claude/skills/gstack" ]; then
-  if [ -f ".claude/skills/gstack/VERSION" ] || [ -d ".claude/skills/gstack/.git" ]; then
+if [ -d ".claude/skills/cyberdart" ] && [ ! -L ".claude/skills/cyberdart" ]; then
+  if [ -f ".claude/skills/cyberdart/VERSION" ] || [ -d ".claude/skills/cyberdart/.git" ]; then
     _VENDORED="yes"
   fi
 fi
-echo "VENDORED_GSTACK: $_VENDORED"
+echo "VENDORED_CYBERDART: $_VENDORED"
 echo "MODEL_OVERLAY: claude"
-_CHECKPOINT_MODE=$(~/.claude/skills/gstack/bin/gstack-config get checkpoint_mode 2>/dev/null || echo "explicit")
-_CHECKPOINT_PUSH=$(~/.claude/skills/gstack/bin/gstack-config get checkpoint_push 2>/dev/null || echo "false")
+_CHECKPOINT_MODE=$(~/.claude/skills/cyberdart/bin/cyberdart-config get checkpoint_mode 2>/dev/null || echo "explicit")
+_CHECKPOINT_PUSH=$(~/.claude/skills/cyberdart/bin/cyberdart-config get checkpoint_push 2>/dev/null || echo "false")
 echo "CHECKPOINT_MODE: $_CHECKPOINT_MODE"
 echo "CHECKPOINT_PUSH: $_CHECKPOINT_PUSH"
 [ -n "$OPENCLAW_SESSION" ] && echo "SPAWNED_SESSION: true" || true
@@ -108,7 +108,7 @@ echo "CHECKPOINT_PUSH: $_CHECKPOINT_PUSH"
 
 ## Plan Mode Safe Operations
 
-In plan mode, allowed because they inform the plan: `$B`, `$D`, `codex exec`/`codex review`, writes to `~/.gstack/`, writes to the plan file, and `open` for generated artifacts.
+In plan mode, allowed because they inform the plan: `$B`, `$D`, `codex exec`/`codex review`, writes to `~/.cyberdart/`, writes to the plan file, and `open` for generated artifacts.
 
 ## Skill Invocation During Plan Mode
 
@@ -116,15 +116,15 @@ If the user invokes a skill in plan mode, the skill takes precedence over generi
 
 If `PROACTIVE` is `"false"`, do not auto-invoke or proactively suggest skills. If a skill seems useful, ask: "I think /skillname might help here — want me to run it?"
 
-If `SKILL_PREFIX` is `"true"`, suggest/invoke `/gstack-*` names. Disk paths stay `~/.claude/skills/gstack/[skill-name]/SKILL.md`.
+If `SKILL_PREFIX` is `"true"`, suggest/invoke `/cyberdart-*` names. Disk paths stay `~/.claude/skills/cyberdart/[skill-name]/SKILL.md`.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined).
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/cyberdart/cyberdart-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined).
 
-If output shows `JUST_UPGRADED <from> <to>`: print "Running gstack v{to} (just updated!)". If `SPAWNED_SESSION` is true, skip feature discovery.
+If output shows `JUST_UPGRADED <from> <to>`: print "Running cyberdart v{to} (just updated!)". If `SPAWNED_SESSION` is true, skip feature discovery.
 
 Feature discovery, max one prompt per session:
-- Missing `~/.claude/skills/gstack/.feature-prompted-continuous-checkpoint`: AskUserQuestion for Continuous checkpoint auto-commits. If accepted, run `~/.claude/skills/gstack/bin/gstack-config set checkpoint_mode continuous`. Always touch marker.
-- Missing `~/.claude/skills/gstack/.feature-prompted-model-overlay`: inform "Model overlays are active. MODEL_OVERLAY shows the patch." Always touch marker.
+- Missing `~/.claude/skills/cyberdart/.feature-prompted-continuous-checkpoint`: AskUserQuestion for Continuous checkpoint auto-commits. If accepted, run `~/.claude/skills/cyberdart/bin/cyberdart-config set checkpoint_mode continuous`. Always touch marker.
+- Missing `~/.claude/skills/cyberdart/.feature-prompted-model-overlay`: inform "Model overlays are active. MODEL_OVERLAY shows the patch." Always touch marker.
 
 After upgrade prompts, continue workflow.
 
@@ -137,34 +137,34 @@ Options:
 - B) Restore V0 prose — set `explain_level: terse`
 
 If A: leave `explain_level` unset (defaults to `default`).
-If B: run `~/.claude/skills/gstack/bin/gstack-config set explain_level terse`.
+If B: run `~/.claude/skills/cyberdart/bin/cyberdart-config set explain_level terse`.
 
 Always run (regardless of choice):
 ```bash
-rm -f ~/.gstack/.writing-style-prompt-pending
-touch ~/.gstack/.writing-style-prompted
+rm -f ~/.cyberdart/.writing-style-prompt-pending
+touch ~/.cyberdart/.writing-style-prompted
 ```
 
 Skip if `WRITING_STYLE_PENDING` is `no`.
 
-If `LAKE_INTRO` is `no`: say "gstack follows the **Boil the Lake** principle — do the complete thing when AI makes marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean" Offer to open:
+If `LAKE_INTRO` is `no`: say "cyberdart follows the **Boil the Lake** principle — do the complete thing when AI makes marginal cost near-zero. Read more: https://garryslist.org/posts/boil-the-ocean" Offer to open:
 
 ```bash
 open https://garryslist.org/posts/boil-the-ocean
-touch ~/.gstack/.completeness-intro-seen
+touch ~/.cyberdart/.completeness-intro-seen
 ```
 
 Only run `open` if yes. Always run `touch`.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: ask telemetry once via AskUserQuestion:
 
-> Help gstack get better. Share usage data only: skill, duration, crashes, stable device ID. No code, file paths, or repo names.
+> Help cyberdart get better. Share usage data only: skill, duration, crashes, stable device ID. No code, file paths, or repo names.
 
 Options:
-- A) Help gstack get better! (recommended)
+- A) Help cyberdart get better! (recommended)
 - B) No thanks
 
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
+If A: run `~/.claude/skills/cyberdart/bin/cyberdart-config set telemetry community`
 
 If B: ask follow-up:
 
@@ -174,30 +174,30 @@ Options:
 - A) Sure, anonymous is fine
 - B) No thanks, fully off
 
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
+If B→A: run `~/.claude/skills/cyberdart/bin/cyberdart-config set telemetry anonymous`
+If B→B: run `~/.claude/skills/cyberdart/bin/cyberdart-config set telemetry off`
 
 Always run:
 ```bash
-touch ~/.gstack/.telemetry-prompted
+touch ~/.cyberdart/.telemetry-prompted
 ```
 
 Skip if `TEL_PROMPTED` is `yes`.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: ask once:
 
-> Let gstack proactively suggest skills, like /qa for "does this work?" or /investigate for bugs?
+> Let cyberdart proactively suggest skills, like /qa for "does this work?" or /investigate for bugs?
 
 Options:
 - A) Keep it on (recommended)
 - B) Turn it off — I'll type /commands myself
 
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
+If A: run `~/.claude/skills/cyberdart/bin/cyberdart-config set proactive true`
+If B: run `~/.claude/skills/cyberdart/bin/cyberdart-config set proactive false`
 
 Always run:
 ```bash
-touch ~/.gstack/.proactive-prompted
+touch ~/.cyberdart/.proactive-prompted
 ```
 
 Skip if `PROACTIVE_PROMPTED` is `yes`.
@@ -207,7 +207,7 @@ Check if a CLAUDE.md file exists in the project root. If it does not exist, crea
 
 Use AskUserQuestion:
 
-> gstack works best when your project's CLAUDE.md includes skill routing rules.
+> cyberdart works best when your project's CLAUDE.md includes skill routing rules.
 
 Options:
 - A) Add routing rules to CLAUDE.md (recommended)
@@ -236,15 +236,15 @@ Key routing rules:
 - Resume context → invoke /context-restore
 ```
 
-Then commit the change: `git add CLAUDE.md && git commit -m "chore: add gstack skill routing rules to CLAUDE.md"`
+Then commit the change: `git add CLAUDE.md && git commit -m "chore: add cyberdart skill routing rules to CLAUDE.md"`
 
-If B: run `~/.claude/skills/gstack/bin/gstack-config set routing_declined true` and say they can re-enable with `gstack-config set routing_declined false`.
+If B: run `~/.claude/skills/cyberdart/bin/cyberdart-config set routing_declined true` and say they can re-enable with `cyberdart-config set routing_declined false`.
 
 This only happens once per project. Skip if `HAS_ROUTING` is `yes` or `ROUTING_DECLINED` is `true`.
 
-If `VENDORED_GSTACK` is `yes`, warn once via AskUserQuestion unless `~/.gstack/.vendoring-warned-$SLUG` exists:
+If `VENDORED_CYBERDART` is `yes`, warn once via AskUserQuestion unless `~/.cyberdart/.vendoring-warned-$SLUG` exists:
 
-> This project has gstack vendored in `.claude/skills/gstack/`. Vendoring is deprecated.
+> This project has cyberdart vendored in `.claude/skills/cyberdart/`. Vendoring is deprecated.
 > Migrate to team mode?
 
 Options:
@@ -252,18 +252,18 @@ Options:
 - B) No, I'll handle it myself
 
 If A:
-1. Run `git rm -r .claude/skills/gstack/`
-2. Run `echo '.claude/skills/gstack/' >> .gitignore`
-3. Run `~/.claude/skills/gstack/bin/gstack-team-init required` (or `optional`)
-4. Run `git add .claude/ .gitignore CLAUDE.md && git commit -m "chore: migrate gstack from vendored to team mode"`
-5. Tell the user: "Done. Each developer now runs: `cd ~/.claude/skills/gstack && ./setup --team`"
+1. Run `git rm -r .claude/skills/cyberdart/`
+2. Run `echo '.claude/skills/cyberdart/' >> .gitignore`
+3. Run `~/.claude/skills/cyberdart/bin/cyberdart-team-init required` (or `optional`)
+4. Run `git add .claude/ .gitignore CLAUDE.md && git commit -m "chore: migrate cyberdart from vendored to team mode"`
+5. Tell the user: "Done. Each developer now runs: `cd ~/.claude/skills/cyberdart && ./setup --team`"
 
 If B: say "OK, you're on your own to keep the vendored copy up to date."
 
 Always run (regardless of choice):
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)" 2>/dev/null || true
-touch ~/.gstack/.vendoring-warned-${SLUG:-unknown}
+eval "$(~/.claude/skills/cyberdart/bin/cyberdart-slug 2>/dev/null)" 2>/dev/null || true
+touch ~/.cyberdart/.vendoring-warned-${SLUG:-unknown}
 ```
 
 If marker exists, skip.
@@ -316,7 +316,7 @@ Pros / cons: use ✅ and ❌. Minimum 2 pros and 1 con per option when the choic
 
 Neutral posture: `Recommendation: <default> — this is a taste call, no strong preference either way`; `(recommended)` STAYS on the default option for AUTO_DECIDE.
 
-Effort both-scales: when an option involves effort, label both human-team and CC+gstack time, e.g. `(human: ~2 days / CC: ~15 min)`. Makes AI compression visible at decision time.
+Effort both-scales: when an option involves effort, label both human-team and CC+cyberdart time, e.g. `(human: ~2 days / CC: ~15 min)`. Makes AI compression visible at decision time.
 
 Net line closes the tradeoff. Per-skill instructions may add stricter rules.
 
@@ -358,16 +358,16 @@ Before calling AskUserQuestion, verify:
 ## Artifacts Sync (skill start)
 
 ```bash
-_GSTACK_HOME="${GSTACK_HOME:-$HOME/.gstack}"
+_CYBERDART_HOME="${CYBERDART_HOME:-$HOME/.cyberdart}"
 # Prefer the v1.27.0.0 artifacts file; fall back to brain file for users
 # upgrading mid-stream before the migration script runs.
-if [ -f "$HOME/.gstack-artifacts-remote.txt" ]; then
-  _BRAIN_REMOTE_FILE="$HOME/.gstack-artifacts-remote.txt"
+if [ -f "$HOME/.cyberdart-artifacts-remote.txt" ]; then
+  _BRAIN_REMOTE_FILE="$HOME/.cyberdart-artifacts-remote.txt"
 else
-  _BRAIN_REMOTE_FILE="$HOME/.gstack-brain-remote.txt"
+  _BRAIN_REMOTE_FILE="$HOME/.cyberdart-brain-remote.txt"
 fi
-_BRAIN_SYNC_BIN="~/.claude/skills/gstack/bin/gstack-brain-sync"
-_BRAIN_CONFIG_BIN="~/.claude/skills/gstack/bin/gstack-config"
+_BRAIN_SYNC_BIN="~/.claude/skills/cyberdart/bin/cyberdart-brain-sync"
+_BRAIN_CONFIG_BIN="~/.claude/skills/cyberdart/bin/cyberdart-config"
 
 # /sync-gbrain context-load: teach the agent to use gbrain when it's available.
 # Per-worktree pin: post-spike redesign uses kubectl-style `.gbrain-source` in the
@@ -412,16 +412,16 @@ if command -v jq >/dev/null 2>&1 && [ -f "$HOME/.claude.json" ]; then
   esac
 fi
 
-if [ -f "$_BRAIN_REMOTE_FILE" ] && [ ! -d "$_GSTACK_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" = "off" ]; then
+if [ -f "$_BRAIN_REMOTE_FILE" ] && [ ! -d "$_CYBERDART_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" = "off" ]; then
   _BRAIN_NEW_URL=$(head -1 "$_BRAIN_REMOTE_FILE" 2>/dev/null | tr -d '[:space:]')
   if [ -n "$_BRAIN_NEW_URL" ]; then
     echo "ARTIFACTS_SYNC: artifacts repo detected: $_BRAIN_NEW_URL"
-    echo "ARTIFACTS_SYNC: run 'gstack-brain-restore' to pull your cross-machine artifacts (or 'gstack-config set artifacts_sync_mode off' to dismiss forever)"
+    echo "ARTIFACTS_SYNC: run 'cyberdart-brain-restore' to pull your cross-machine artifacts (or 'cyberdart-config set artifacts_sync_mode off' to dismiss forever)"
   fi
 fi
 
-if [ -d "$_GSTACK_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" != "off" ]; then
-  _BRAIN_LAST_PULL_FILE="$_GSTACK_HOME/.brain-last-pull"
+if [ -d "$_CYBERDART_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" != "off" ]; then
+  _BRAIN_LAST_PULL_FILE="$_CYBERDART_HOME/.brain-last-pull"
   _BRAIN_NOW=$(date +%s)
   _BRAIN_DO_PULL=1
   if [ -f "$_BRAIN_LAST_PULL_FILE" ]; then
@@ -430,7 +430,7 @@ if [ -d "$_GSTACK_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" != "off" ]; then
     [ "$_BRAIN_AGE" -lt 86400 ] && _BRAIN_DO_PULL=0
   fi
   if [ "$_BRAIN_DO_PULL" = "1" ]; then
-    ( cd "$_GSTACK_HOME" && git fetch origin >/dev/null 2>&1 && git merge --ff-only "origin/$(git rev-parse --abbrev-ref HEAD)" >/dev/null 2>&1 ) || true
+    ( cd "$_CYBERDART_HOME" && git fetch origin >/dev/null 2>&1 && git merge --ff-only "origin/$(git rev-parse --abbrev-ref HEAD)" >/dev/null 2>&1 ) || true
     echo "$_BRAIN_NOW" > "$_BRAIN_LAST_PULL_FILE"
   fi
   "$_BRAIN_SYNC_BIN" --once 2>/dev/null || true
@@ -441,11 +441,11 @@ if [ "$_GBRAIN_MCP_MODE" = "remote-http" ]; then
   # pulls from GitHub/GitLab). Show the user this is by design, not broken.
   _GBRAIN_HOST=$(jq -r '.mcpServers.gbrain.url // empty' "$HOME/.claude.json" 2>/dev/null | sed -E 's|^https?://([^/:]+).*|\1|')
   echo "ARTIFACTS_SYNC: remote-mode (managed by brain server ${_GBRAIN_HOST:-remote})"
-elif [ -d "$_GSTACK_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" != "off" ]; then
+elif [ -d "$_CYBERDART_HOME/.git" ] && [ "$_BRAIN_SYNC_MODE" != "off" ]; then
   _BRAIN_QUEUE_DEPTH=0
-  [ -f "$_GSTACK_HOME/.brain-queue.jsonl" ] && _BRAIN_QUEUE_DEPTH=$(wc -l < "$_GSTACK_HOME/.brain-queue.jsonl" | tr -d ' ')
+  [ -f "$_CYBERDART_HOME/.brain-queue.jsonl" ] && _BRAIN_QUEUE_DEPTH=$(wc -l < "$_CYBERDART_HOME/.brain-queue.jsonl" | tr -d ' ')
   _BRAIN_LAST_PUSH="never"
-  [ -f "$_GSTACK_HOME/.brain-last-push" ] && _BRAIN_LAST_PUSH=$(cat "$_GSTACK_HOME/.brain-last-push" 2>/dev/null || echo never)
+  [ -f "$_CYBERDART_HOME/.brain-last-push" ] && _BRAIN_LAST_PUSH=$(cat "$_CYBERDART_HOME/.brain-last-push" 2>/dev/null || echo never)
   echo "ARTIFACTS_SYNC: mode=$_BRAIN_SYNC_MODE | last_push=$_BRAIN_LAST_PUSH | queue=$_BRAIN_QUEUE_DEPTH"
 else
   echo "ARTIFACTS_SYNC: off"
@@ -456,7 +456,7 @@ fi
 
 Privacy stop-gate: if output shows `ARTIFACTS_SYNC: off`, `artifacts_sync_mode_prompted` is `false`, and gbrain is on PATH or `gbrain doctor --fast --json` works, ask once:
 
-> gstack can publish your artifacts (CEO plans, designs, reports) to a private GitHub repo that GBrain indexes across machines. How much should sync?
+> cyberdart can publish your artifacts (CEO plans, designs, reports) to a private GitHub repo that GBrain indexes across machines. How much should sync?
 
 Options:
 - A) Everything allowlisted (recommended)
@@ -471,13 +471,13 @@ After answer:
 "$_BRAIN_CONFIG_BIN" set artifacts_sync_mode_prompted true
 ```
 
-If A/B and `~/.gstack/.git` is missing, ask whether to run `gstack-artifacts-init`. Do not block the skill.
+If A/B and `~/.cyberdart/.git` is missing, ask whether to run `cyberdart-artifacts-init`. Do not block the skill.
 
 At skill END before telemetry:
 
 ```bash
-"~/.claude/skills/gstack/bin/gstack-brain-sync" --discover-new 2>/dev/null || true
-"~/.claude/skills/gstack/bin/gstack-brain-sync" --once 2>/dev/null || true
+"~/.claude/skills/cyberdart/bin/cyberdart-brain-sync" --discover-new 2>/dev/null || true
+"~/.claude/skills/cyberdart/bin/cyberdart-brain-sync" --once 2>/dev/null || true
 ```
 
 
@@ -520,8 +520,8 @@ Bad: "I've identified a potential issue in the authentication flow that may caus
 At session start or after compaction, recover recent project context.
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)"
-_PROJ="${GSTACK_HOME:-$HOME/.gstack}/projects/${SLUG:-unknown}"
+eval "$(~/.claude/skills/cyberdart/bin/cyberdart-slug 2>/dev/null)"
+_PROJ="${CYBERDART_HOME:-$HOME/.cyberdart}/projects/${SLUG:-unknown}"
 if [ -d "$_PROJ" ]; then
   echo "--- RECENT ARTIFACTS ---"
   find "$_PROJ/ceo-plans" "$_PROJ/checkpoints" -type f -name "*.md" 2>/dev/null | xargs ls -t 2>/dev/null | head -3
@@ -653,17 +653,17 @@ Commit format:
 ```
 WIP: <concise description of what changed>
 
-[gstack-context]
+[cyberdart-context]
 Decisions: <key choices made this step>
 Remaining: <what's left in the logical unit>
 Tried: <failed approaches worth recording> (omit if none)
 Skill: </skill-name-if-running>
-[/gstack-context]
+[/cyberdart-context]
 ```
 
 Rules: stage only intentional files, NEVER `git add -A`, do not commit broken tests or mid-edit state, and push only if `CHECKPOINT_PUSH` is `"true"`. Do not announce each WIP commit.
 
-`/context-restore` reads `[gstack-context]`; `/ship` squashes WIP commits into clean commits.
+`/context-restore` reads `[cyberdart-context]`; `/ship` squashes WIP commits into clean commits.
 
 If `CHECKPOINT_MODE` is `"explicit"`: ignore this section unless a skill or user asks to commit.
 
@@ -675,11 +675,11 @@ If you are looping on the same diagnostic, same file, or failed fix variants, ST
 
 ## Question Tuning (skip entirely if `QUESTION_TUNING: false`)
 
-Before each AskUserQuestion, choose `question_id` from `scripts/question-registry.ts` or `{skill}-{slug}`, then run `~/.claude/skills/gstack/bin/gstack-question-preference --check "<id>"`. `AUTO_DECIDE` means choose the recommended option and say "Auto-decided [summary] → [option] (your preference). Change with /plan-tune." `ASK_NORMALLY` means ask.
+Before each AskUserQuestion, choose `question_id` from `scripts/question-registry.ts` or `{skill}-{slug}`, then run `~/.claude/skills/cyberdart/bin/cyberdart-question-preference --check "<id>"`. `AUTO_DECIDE` means choose the recommended option and say "Auto-decided [summary] → [option] (your preference). Change with /plan-tune." `ASK_NORMALLY` means ask.
 
 After answer, log best-effort:
 ```bash
-~/.claude/skills/gstack/bin/gstack-question-log '{"skill":"setup-gbrain","question_id":"<id>","question_summary":"<short>","category":"<approval|clarification|routing|cherry-pick|feedback-loop>","door_type":"<one-way|two-way>","options_count":N,"user_choice":"<key>","recommended":"<key>","session_id":"'"$_SESSION_ID"'"}' 2>/dev/null || true
+~/.claude/skills/cyberdart/bin/cyberdart-question-log '{"skill":"setup-gbrain","question_id":"<id>","question_summary":"<short>","category":"<approval|clarification|routing|cherry-pick|feedback-loop>","door_type":"<one-way|two-way>","options_count":N,"user_choice":"<key>","recommended":"<key>","session_id":"'"$_SESSION_ID"'"}' 2>/dev/null || true
 ```
 
 For two-way questions, offer: "Tune this question? Reply `tune: never-ask`, `tune: always-ask`, or free-form."
@@ -688,7 +688,7 @@ User-origin gate (profile-poisoning defense): write tune events ONLY when `tune:
 
 Write (only after confirmation for free-form):
 ```bash
-~/.claude/skills/gstack/bin/gstack-question-preference --write '{"question_id":"<id>","preference":"<pref>","source":"inline-user","free_text":"<optional original words>"}'
+~/.claude/skills/cyberdart/bin/cyberdart-question-preference --write '{"question_id":"<id>","preference":"<pref>","source":"inline-user","free_text":"<optional original words>"}'
 ```
 
 Exit code 2 = rejected as not user-originated; do not retry. On success: "Set `<id>` → `<preference>`. Active immediately."
@@ -708,7 +708,7 @@ Escalate after 3 failed attempts, uncertain security-sensitive changes, or scope
 Before completing, if you discovered a durable project quirk or command fix that would save 5+ minutes next time, log it:
 
 ```bash
-~/.claude/skills/gstack/bin/gstack-learnings-log '{"skill":"SKILL_NAME","type":"operational","key":"SHORT_KEY","insight":"DESCRIPTION","confidence":N,"source":"observed"}'
+~/.claude/skills/cyberdart/bin/cyberdart-learnings-log '{"skill":"SKILL_NAME","type":"operational","key":"SHORT_KEY","insight":"DESCRIPTION","confidence":N,"source":"observed"}'
 ```
 
 Do not log obvious facts or one-time transient errors.
@@ -718,23 +718,23 @@ Do not log obvious facts or one-time transient errors.
 After workflow completion, log telemetry. Use skill `name:` from frontmatter. OUTCOME is success/error/abort/unknown.
 
 **PLAN MODE EXCEPTION — ALWAYS RUN:** This command writes telemetry to
-`~/.gstack/analytics/`, matching preamble analytics writes.
+`~/.cyberdart/analytics/`, matching preamble analytics writes.
 
 Run this bash:
 
 ```bash
 _TEL_END=$(date +%s)
 _TEL_DUR=$(( _TEL_END - _TEL_START ))
-rm -f ~/.gstack/analytics/.pending-"$_SESSION_ID" 2>/dev/null || true
+rm -f ~/.cyberdart/analytics/.pending-"$_SESSION_ID" 2>/dev/null || true
 # Session timeline: record skill completion (local-only, never sent anywhere)
-~/.claude/skills/gstack/bin/gstack-timeline-log '{"skill":"SKILL_NAME","event":"completed","branch":"'$(git branch --show-current 2>/dev/null || echo unknown)'","outcome":"OUTCOME","duration_s":"'"$_TEL_DUR"'","session":"'"$_SESSION_ID"'"}' 2>/dev/null || true
+~/.claude/skills/cyberdart/bin/cyberdart-timeline-log '{"skill":"SKILL_NAME","event":"completed","branch":"'$(git branch --show-current 2>/dev/null || echo unknown)'","outcome":"OUTCOME","duration_s":"'"$_TEL_DUR"'","session":"'"$_SESSION_ID"'"}' 2>/dev/null || true
 # Local analytics (gated on telemetry setting)
 if [ "$_TEL" != "off" ]; then
-echo '{"skill":"SKILL_NAME","duration_s":"'"$_TEL_DUR"'","outcome":"OUTCOME","browse":"USED_BROWSE","session":"'"$_SESSION_ID"'","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' >> ~/.gstack/analytics/skill-usage.jsonl 2>/dev/null || true
+echo '{"skill":"SKILL_NAME","duration_s":"'"$_TEL_DUR"'","outcome":"OUTCOME","browse":"USED_BROWSE","session":"'"$_SESSION_ID"'","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' >> ~/.cyberdart/analytics/skill-usage.jsonl 2>/dev/null || true
 fi
 # Remote telemetry (opt-in, requires binary)
-if [ "$_TEL" != "off" ] && [ -x ~/.claude/skills/gstack/bin/gstack-telemetry-log ]; then
-  ~/.claude/skills/gstack/bin/gstack-telemetry-log \
+if [ "$_TEL" != "off" ] && [ -x ~/.claude/skills/cyberdart/bin/cyberdart-telemetry-log ]; then
+  ~/.claude/skills/cyberdart/bin/cyberdart-telemetry-log \
     --skill "SKILL_NAME" --duration "$_TEL_DUR" --outcome "OUTCOME" \
     --used-browse "USED_BROWSE" --session-id "$_SESSION_ID" 2>/dev/null &
 fi
@@ -744,7 +744,7 @@ Replace `SKILL_NAME`, `OUTCOME`, and `USED_BROWSE` before running.
 
 ## Plan Status Footer
 
-In plan mode before ExitPlanMode: if the plan file lacks `## GSTACK REVIEW REPORT`, run `~/.claude/skills/gstack/bin/gstack-review-read` and append the standard runs/status/findings table. With `NO_REVIEWS` or empty, append a 5-row placeholder with verdict "NO REVIEWS YET — run `/autoplan`". If a richer report exists, skip.
+In plan mode before ExitPlanMode: if the plan file lacks `## CYBERDART REVIEW REPORT`, run `~/.claude/skills/cyberdart/bin/cyberdart-review-read` and append the standard runs/status/findings table. With `NO_REVIEWS` or empty, append a 5-row placeholder with verdict "NO REVIEWS YET — run `/autoplan`". If a richer report exists, skip.
 
 PLAN MODE EXCEPTION — always allowed (it's the plan file).
 
@@ -781,12 +781,12 @@ implemented as a dispatcher binary.
 ## Step 1: Detect current state
 
 ```bash
-~/.claude/skills/gstack/bin/gstack-gbrain-detect
+~/.claude/skills/cyberdart/bin/cyberdart-gbrain-detect
 ```
 
 Capture the JSON output. It contains: `gbrain_on_path`, `gbrain_version`,
 `gbrain_config_exists`, `gbrain_engine`, `gbrain_doctor_ok`,
-`gstack_brain_sync_mode`, `gstack_brain_git`.
+`cyberdart_brain_sync_mode`, `cyberdart_brain_git`.
 
 Skip downstream steps that are already done. Report the detected state in
 one line so the user knows what you found:
@@ -846,7 +846,7 @@ Path 4 subsection).
 For Paths 1, 2a, 2b, 3, switch — only if `gbrain_on_path=false`:
 
 ```bash
-~/.claude/skills/gstack/bin/gstack-gbrain-install
+~/.claude/skills/cyberdart/bin/cyberdart-gbrain-install
 ```
 
 The installer runs D5 detect-first (probes `~/git/gbrain`, `~/gbrain` first),
@@ -866,7 +866,7 @@ Path-specific.
 Source the secret-read helper, collect URL with `read -s` + redacted preview:
 
 ```bash
-. ~/.claude/skills/gstack/bin/gstack-gbrain-lib.sh
+. ~/.claude/skills/cyberdart/bin/cyberdart-gbrain-lib.sh
 read_secret_to_env GBRAIN_POOLER_URL "Paste Session Pooler URL: " \
   --echo-redacted 's#://[^@]*@#://***@#'
 ```
@@ -874,7 +874,7 @@ read_secret_to_env GBRAIN_POOLER_URL "Paste Session Pooler URL: " \
 Then validate structurally:
 
 ```bash
-printf '%s' "$GBRAIN_POOLER_URL" | ~/.claude/skills/gstack/bin/gstack-gbrain-supabase-verify -
+printf '%s' "$GBRAIN_POOLER_URL" | ~/.claude/skills/cyberdart/bin/cyberdart-gbrain-supabase-verify -
 ```
 
 If the verify exit code is 3 (direct-connection URL), the verifier's own
@@ -905,7 +905,7 @@ Show the D11 PAT scope disclosure verbatim BEFORE collecting the token:
 Then:
 
 ```bash
-. ~/.claude/skills/gstack/bin/gstack-gbrain-lib.sh
+. ~/.claude/skills/cyberdart/bin/cyberdart-gbrain-lib.sh
 read_secret_to_env SUPABASE_ACCESS_TOKEN "Paste PAT: "
 ```
 
@@ -918,7 +918,7 @@ tier. Pro may require them to upgrade the org first at supabase.com.
 List orgs, pick one (AskUserQuestion if multiple):
 
 ```bash
-orgs=$(~/.claude/skills/gstack/bin/gstack-gbrain-supabase-provision list-orgs --json)
+orgs=$(~/.claude/skills/cyberdart/bin/cyberdart-gbrain-supabase-provision list-orgs --json)
 ```
 
 If the `.orgs` array is empty, surface: "Your Supabase account has no
@@ -938,7 +938,7 @@ export DB_PASS=$(openssl rand -base64 24)
 Set up a SIGINT trap (D12 basic recovery):
 
 ```bash
-trap 'echo ""; echo "gstack-gbrain: interrupted. In-flight ref: $INFLIGHT_REF"; \
+trap 'echo ""; echo "cyberdart-gbrain: interrupted. In-flight ref: $INFLIGHT_REF"; \
       echo "Resume: /setup-gbrain --resume-provision $INFLIGHT_REF"; \
       echo "Delete: https://supabase.com/dashboard/project/$INFLIGHT_REF"; \
       unset SUPABASE_ACCESS_TOKEN DB_PASS; exit 130' INT TERM
@@ -947,11 +947,11 @@ trap 'echo ""; echo "gstack-gbrain: interrupted. In-flight ref: $INFLIGHT_REF"; 
 Create + wait + fetch:
 
 ```bash
-result=$(~/.claude/skills/gstack/bin/gstack-gbrain-supabase-provision \
+result=$(~/.claude/skills/cyberdart/bin/cyberdart-gbrain-supabase-provision \
   create gbrain "$REGION" "$ORG_SLUG" --json)
 INFLIGHT_REF=$(echo "$result" | jq -r .ref)
-~/.claude/skills/gstack/bin/gstack-gbrain-supabase-provision wait "$INFLIGHT_REF" --json
-pooler=$(~/.claude/skills/gstack/bin/gstack-gbrain-supabase-provision \
+~/.claude/skills/cyberdart/bin/cyberdart-gbrain-supabase-provision wait "$INFLIGHT_REF" --json
+pooler=$(~/.claude/skills/cyberdart/bin/cyberdart-gbrain-supabase-provision \
   pooler-url "$INFLIGHT_REF" --json)
 GBRAIN_DATABASE_URL=$(echo "$pooler" | jq -r .pooler_url)
 export GBRAIN_DATABASE_URL
@@ -1008,17 +1008,17 @@ non-loopback host); refuse `http://` for non-localhost.
 **4b. Collect bearer token via the secret-read helper (D10, never argv).**
 
 ```bash
-. ~/.claude/skills/gstack/bin/gstack-gbrain-lib.sh
+. ~/.claude/skills/cyberdart/bin/cyberdart-gbrain-lib.sh
 read_secret_to_env GBRAIN_MCP_TOKEN "Paste bearer token: " \
   --echo-redacted 's/.\{6\}$/***REDACTED***/'
 ```
 
-**4c. Verify via gstack-gbrain-mcp-verify.** Run the helper; capture the
+**4c. Verify via cyberdart-gbrain-mcp-verify.** Run the helper; capture the
 classified JSON output:
 
 ```bash
 verify_json=$(GBRAIN_MCP_TOKEN="$GBRAIN_MCP_TOKEN" \
-  ~/.claude/skills/gstack/bin/gstack-gbrain-mcp-verify "$MCP_URL")
+  ~/.claude/skills/cyberdart/bin/cyberdart-gbrain-mcp-verify "$MCP_URL")
 status=$(echo "$verify_json" | jq -r .status)
 ```
 
@@ -1031,7 +1031,7 @@ half-broken state.
 
 Capture two values from the verify output for downstream steps:
 - `SERVER_VERSION` (e.g., `0.27.1`) — written to the CLAUDE.md block in Step 8.
-- `URL_FORM_SUPPORTED` (`true|false`) — passed to `gstack-artifacts-init` in
+- `URL_FORM_SUPPORTED` (`true|false`) — passed to `cyberdart-artifacts-init` in
   Step 7 to control which form of the brain-admin hookup command is printed.
 
 **4d. Skip Steps 3, 4 (other paths), 5 (local doctor), 7.5 (transcript ingest).**
@@ -1056,7 +1056,7 @@ timeout 180s gbrain migrate --to pglite --json
 ```
 
 If `timeout` returns 124 (exit code for timeout): surface D9 message
-("Migration didn't complete in 3 minutes — another gstack session may be
+("Migration didn't complete in 3 minutes — another cyberdart session may be
 holding a lock on the source brain. Close other workspaces and re-run
 `/setup-gbrain --switch`. Your original brain is untouched."). STOP.
 
@@ -1144,7 +1144,7 @@ session start, not mid-session."
 If we're in a git repo with an `origin` remote, check the policy:
 
 ```bash
-current_tier=$(~/.claude/skills/gstack/bin/gstack-gbrain-repo-policy get)
+current_tier=$(~/.claude/skills/cyberdart/bin/cyberdart-gbrain-repo-policy get)
 ```
 
 Branches:
@@ -1162,7 +1162,7 @@ Branches:
 
   On answer (other than skip-for-now):
   ```bash
-  ~/.claude/skills/gstack/bin/gstack-gbrain-repo-policy set "$REMOTE" "$TIER"
+  ~/.claude/skills/cyberdart/bin/cyberdart-gbrain-repo-policy set "$REMOTE" "$TIER"
   ```
   Then import iff `read-write`.
 
@@ -1180,7 +1180,7 @@ artifacts (CEO plans, designs, /investigate reports, retros) rather than
 human-readable artifact bucket. Behavioral transcript ingest is its own
 step (7.5) with its own option set.
 
-Separate AskUserQuestion: "Also sync your gstack artifacts (CEO plans,
+Separate AskUserQuestion: "Also sync your cyberdart artifacts (CEO plans,
 designs, reports, retros) to a private git repo that gbrain can index
 across machines?"
 
@@ -1191,32 +1191,32 @@ Options:
 
 If yes, run the artifacts-init helper. It asks the user to pick a git host
 (GitHub via `gh`, GitLab via `glab`, or paste a URL manually), creates
-`gstack-artifacts-$USER` (private), and writes the canonical HTTPS URL to
-`~/.gstack-artifacts-remote.txt`. Pass `--url-form-supported` from Step 4c's
+`cyberdart-artifacts-$USER` (private), and writes the canonical HTTPS URL to
+`~/.cyberdart-artifacts-remote.txt`. Pass `--url-form-supported` from Step 4c's
 verify output (Path 4) or `false` (Paths 1/2/3 — local mode doesn't probe):
 
 ```bash
 URL_FORM=${URL_FORM_SUPPORTED:-false}
-~/.claude/skills/gstack/bin/gstack-artifacts-init --url-form-supported "$URL_FORM"
-~/.claude/skills/gstack/bin/gstack-config set artifacts_sync_mode artifacts-only
+~/.claude/skills/cyberdart/bin/cyberdart-artifacts-init --url-form-supported "$URL_FORM"
+~/.claude/skills/cyberdart/bin/cyberdart-config set artifacts_sync_mode artifacts-only
 # or "full" if user picked yes-full
 ```
 
-`gstack-artifacts-init` always prints a "Send this to your brain admin" block
+`cyberdart-artifacts-init` always prints a "Send this to your brain admin" block
 at the end with the exact `gbrain sources add` command. Per codex Finding #3:
 the skill never auto-executes server-side gbrain commands; even if the user
 IS the brain admin, copy-pasting the printed command is the consistent UX.
 
 ### Path 4 (Remote MCP) — done after artifacts-init
 
-In remote mode, the local `gstack-gbrain-source-wireup` helper does NOT run
+In remote mode, the local `cyberdart-gbrain-source-wireup` helper does NOT run
 (it shells out to a local `gbrain` CLI which Path 4 doesn't install). The
 brain admin runs the printed command on the brain host instead. Skip to Step 7.5.
 
 ### Paths 1, 2a, 2b, 3 (Local stdio) — wire up the federated source
 
 Then wire the artifacts repo into gbrain so its content is searchable from
-any gbrain client. The helper creates a `git worktree` of `~/.gstack/`,
+any gbrain client. The helper creates a `git worktree` of `~/.cyberdart/`,
 registers it as a federated source via `gbrain sources add --path
 --federated`, and runs an initial `gbrain sync`. Local-Mac only.
 
@@ -1234,12 +1234,12 @@ try:
 except Exception:
     pass
 ")
-~/.claude/skills/gstack/bin/gstack-gbrain-source-wireup --strict \
+~/.claude/skills/cyberdart/bin/cyberdart-gbrain-source-wireup --strict \
   ${GBRAIN_URL:+--database-url "$GBRAIN_URL"}
 ```
 
 `--strict` exits non-zero on missing prereqs (gbrain not installed, < 0.18.0,
-or no `~/.gstack/.git` yet) so the user sees the failure rather than silently
+or no `~/.cyberdart/.git` yet) so the user sees the failure rather than silently
 ending up with an unwired brain. On non-zero exit, surface the helper's
 output and STOP per skill rules — search-across-machines won't work until
 the prereq is fixed.
@@ -1251,28 +1251,28 @@ the prereq is fixed.
 **SKIP entirely on Path 4 (Remote MCP).** Transcript ingest shells out to
 the local `gbrain` CLI which Path 4 doesn't install. Remote-mode users
 rely on the brain server's own ingest cadence — if your brain admin wants
-this machine's transcripts indexed, they pull from your `gstack-artifacts-$USER`
+this machine's transcripts indexed, they pull from your `cyberdart-artifacts-$USER`
 repo (set up in Step 7) on whatever schedule they prefer. Set
-`gstack-config set transcript_ingest_mode off` and continue to Step 8.
+`cyberdart-config set transcript_ingest_mode off` and continue to Step 8.
 
 For Paths 1, 2a, 2b, 3:
 
 After memory sync is wired (Step 7) but before persisting the CLAUDE.md
 config (Step 8), offer to bring this Mac's coding-agent transcripts +
-curated `~/.gstack/` artifacts into gbrain so the retrieval surface
+curated `~/.cyberdart/` artifacts into gbrain so the retrieval surface
 (per-skill manifests, salience block) has data to surface.
 
 Run the probe to size the operation:
 ```bash
-~/.claude/skills/gstack/bin/gstack-memory-ingest --probe
+~/.claude/skills/cyberdart/bin/cyberdart-memory-ingest --probe
 ```
 
 Read the output. If `Total files in window: 0`, skip — there's nothing
-to ingest. Set `gstack-config set transcript_ingest_mode incremental`
+to ingest. Set `cyberdart-config set transcript_ingest_mode incremental`
 silently and continue to Step 8.
 
 If `New (never ingested)` is < 200 AND total bytes are < 100MB: silent
-bulk via `gstack-memory-ingest --bulk --quiet`. Set
+bulk via `cyberdart-memory-ingest --bulk --quiet`. Set
 `transcript_ingest_mode=incremental` and continue.
 
 Otherwise (the "many transcripts on disk" path): AskUserQuestion with
@@ -1283,7 +1283,7 @@ only, last 90 days**:
 > 90 days, plus <N_other> across other repos on this machine (<bytes>
 > total if all ingested). Ingest THIS repo's transcripts into gbrain?
 >
-> What you get after this: every gstack skill auto-loads recent salience
+> What you get after this: every cyberdart skill auto-loads recent salience
 > from your past sessions in this repo, so the agent finds your prior
 > work without you describing it. You can query 'what was I doing on
 > day X' and get a real answer. Per-session pages are searchable,
@@ -1295,7 +1295,7 @@ only, last 90 days**:
 > Multi-Mac note: if you HAVE enabled brain sync (Step 7), these
 > transcript pages will sync across your Macs. Caveat: deleting a
 > transcript page later removes it from gbrain but git history retains
-> it in prior commits. Use `gstack-transcript-prune` to delete in bulk;
+> it in prior commits. Use `cyberdart-transcript-prune` to delete in bulk;
 > use `git filter-repo` on the brain remote for hard-delete from
 > history."
 
@@ -1308,15 +1308,15 @@ Options:
 
 After answer:
 ```bash
-~/.claude/skills/gstack/bin/gstack-config set transcript_ingest_mode <choice>
-~/.claude/skills/gstack/bin/gstack-gbrain-sync --full --no-brain-sync
+~/.claude/skills/cyberdart/bin/cyberdart-config set transcript_ingest_mode <choice>
+~/.claude/skills/cyberdart/bin/cyberdart-gbrain-sync --full --no-brain-sync
 ```
 (`--no-brain-sync` because Step 7 already wired that path; this just
 runs the code import + memory ingest stages. Brain-sync will run on the
 next preamble hook.)
 
 If A/D/E, ingest is incremental from this point on; preamble-boundary
-hook runs `gstack-gbrain-sync --incremental --quiet` on every skill
+hook runs `cyberdart-gbrain-sync --incremental --quiet` on every skill
 start (cheap mtime fast-path).
 
 Reference doc for users: `setup-gbrain/memory.md` (linked from CLAUDE.md
@@ -1338,7 +1338,7 @@ Find-and-replace (or append) the section. Block format depends on mode:
 - Setup date: {today}
 - MCP registered: yes (user scope)
 - Token: stored in ~/.claude.json (do not commit; never written to CLAUDE.md)
-- Artifacts repo: {gstack_artifacts_remote URL or "none"}
+- Artifacts repo: {cyberdart_artifacts_remote URL or "none"}
 - Artifacts sync: {off|artifacts-only|full}
 - Current repo policy: {read-write|read-only|deny|unset}
 ```
@@ -1374,13 +1374,13 @@ last-sync time. Machine state stays in the Configuration block above.
 
 ```markdown
 ## GBrain Search Guidance (configured by /sync-gbrain)
-<!-- gstack-gbrain-search-guidance:start -->
+<!-- cyberdart-gbrain-search-guidance:start -->
 
 GBrain is set up and synced on this machine. The agent should prefer gbrain
 over Grep when the question is semantic or when you don't know the exact
 identifier yet. Two indexed corpora available via the `gbrain` CLI:
-- This repo's code (registered as `gstack-code-<repo>` source).
-- `~/.gstack/` curated memory (registered as `gstack-brain-<user>` source via
+- This repo's code (registered as `cyberdart-code-<repo>` source).
+- `~/.cyberdart/` curated memory (registered as `cyberdart-brain-<user>` source via
   the existing federation pipeline).
 
 Prefer gbrain when:
@@ -1391,13 +1391,13 @@ Prefer gbrain when:
 - "What calls Y?" / "What does Y depend on?":
     `gbrain code-callers <symbol>` / `gbrain code-callees <symbol>`
 - "What did we decide last time?" / past plans, retros, learnings:
-    `gbrain search "<terms>" --source gstack-brain-<user>`
+    `gbrain search "<terms>" --source cyberdart-brain-<user>`
 
 Grep is still right for known exact strings, regex, multiline patterns, and
-file globs. The brain auto-syncs incrementally on every gstack skill start.
+file globs. The brain auto-syncs incrementally on every cyberdart skill start.
 Run `/sync-gbrain` to force-refresh, `/sync-gbrain --full` for full reindex.
 
-<!-- gstack-gbrain-search-guidance:end -->
+<!-- cyberdart-gbrain-search-guidance:end -->
 ```
 
 If Step 9 smoke test fails, skip the guidance block write entirely. The user's
@@ -1454,10 +1454,10 @@ configured Mac is a first-class doctor path: every step detects existing
 state, repairs only what's missing, and reports here.
 
 ```bash
-~/.claude/skills/gstack/bin/gstack-gbrain-detect 2>/dev/null || true
-~/.claude/skills/gstack/bin/gstack-config get transcript_ingest_mode 2>/dev/null || echo "off"
-~/.claude/skills/gstack/bin/gstack-config get artifacts_sync_mode 2>/dev/null || echo "off"
-[ -f ~/.gstack/.gbrain-sync-state.json ] && cat ~/.gstack/.gbrain-sync-state.json || echo "{}"
+~/.claude/skills/cyberdart/bin/cyberdart-gbrain-detect 2>/dev/null || true
+~/.claude/skills/cyberdart/bin/cyberdart-config get transcript_ingest_mode 2>/dev/null || echo "off"
+~/.claude/skills/cyberdart/bin/cyberdart-config get artifacts_sync_mode 2>/dev/null || echo "off"
+[ -f ~/.cyberdart/.gbrain-sync-state.json ] && cat ~/.cyberdart/.gbrain-sync-state.json || echo "{}"
 ```
 
 Read `gbrain_mcp_mode` from the detect output and pick the right verdict
@@ -1473,7 +1473,7 @@ gbrain status: GREEN  (mode: remote-http)
   Engine .......... N/A  remote mode
   Doctor .......... N/A  remote mode (brain admin runs `gbrain doctor`)
   Repo policy ..... OK   {read-write|read-only|deny}
-  Artifacts repo .. OK   {gstack_artifacts_remote URL}
+  Artifacts repo .. OK   {cyberdart_artifacts_remote URL}
   Artifacts sync .. OK   {artifacts_sync_mode}
   Transcripts ..... N/A  remote mode (ingest happens on brain host)
   CLAUDE.md ....... OK
@@ -1572,9 +1572,9 @@ this at build time.
   ours.
 - **STOP points are hard.** Gbrain doctor not healthy, D19 PATH shadow, D9
   migrate timeout, smoke test failure — each is a STOP. Do not paper over.
-- **Concurrent-run lock.** At skill start, `mkdir ~/.gstack/.setup-gbrain.lock.d`
+- **Concurrent-run lock.** At skill start, `mkdir ~/.cyberdart/.setup-gbrain.lock.d`
   (atomic). If the mkdir fails, abort with: "Another `/setup-gbrain` instance
-  is running. Wait for it, or `rm -rf ~/.gstack/.setup-gbrain.lock.d` if
+  is running. Wait for it, or `rm -rf ~/.cyberdart/.setup-gbrain.lock.d` if
   you're sure it's stale." Release on normal exit AND in the SIGINT trap.
 - **CLAUDE.md is the audit trail.** Always update it in Step 8 after a
   successful setup.
