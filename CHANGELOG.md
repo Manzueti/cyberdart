@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 ## [1.33.2.0] - 2026-05-11
 
@@ -38,10 +38,6 @@ If you've been seeing extra top-level skills (`/dublin-v1`, `/wellington`, etc.)
 
 - **`test/setup-conductor-worktree.test.ts`** — 8 tests (27 expect calls) covering: guard placement in `setup` before `ln -snf`, `pwd -P` resolution against `$SOURCE_CYBERDART_DIR`, the skip-branch's remediation message, BSD `ln -snf` reproducer (proves the bug shape exists), guard skips when dest is real-dir-elsewhere, guard allows ln when dest doesn't exist, guard allows ln when dest is an existing symlink (upgrade-in-place), guard allows ln when dest already resolves to source (self-rerun).
 
-#### For contributors
-
-- The guard intentionally does NOT clean up pre-existing pollution inside `~/.claude/skills/cyberdart/`. Users must remove leaked symlinks manually (see "What this means for builders" above). Retroactive cleanup would require a separate migration script, filed for a future release if the manual remediation friction becomes noticeable.
-
 ## [1.33.1.0] - 2026-05-11
 
 ## **Long skills stop drifting away from their starting context.**
@@ -79,10 +75,6 @@ If you run `/investigate` on a bug, the top-of-skill learnings pull now surfaces
 - **`ship/SKILL.md.tmpl`** top-of-skill pull keyed to `release ship version changelog merge pr`. Mid-flow refresh inserted just before Step 12 (VERSION bump), keyed to the headline feature on this branch.
 - **`test/gen-skill-docs.test.ts`** 5 new resolver assertions: no-args has no `--query`, claude+query=foo bar appears in BOTH cross-project and project-scoped branches, codex host gets `--query` in the codex bash variant, empty value `query=` falls through to no-query, AND shell-injection payloads (`$(whoami)`, backticks, `;`, `&`, `"`, `\`, `$x`) throw a build error.
 - **All generated `SKILL.md` files for the 3 long skills + 4 host outputs** regenerated. The other 13 skills' generated output is byte-identical (backwards-compat verified via diff).
-
-#### For contributors
-
-- Contributed by @Fergtic ([chronicle-write-up](https://github.com/Fergtic/chronicle-write-up)) who flagged the load-once + no-refresh pattern and the spend-per-success data point that motivated this work. The static-skill query expansion was also informed by a key fact-check from Codex outside-voice review: the binary's `--query` was single-substring match, not token-OR, which silently invalidated any multi-word query in the wild.
 
 ## [1.33.0.0] - 2026-05-11
 
@@ -150,11 +142,6 @@ If you've been hitting the 35-minute hang on `/sync-gbrain`, it's gone. The arch
 - `parseImportJson` no longer silently returns `{imported: 0, errors: 0}` when gbrain's `--json` output doesn't parse. Returns `null`, caller surfaces as `system_error` so the orchestrator's verdict block shows ERR instead of misleading OK/0/0.
 - `bin/cyberdart-memory-ingest.ts` `require("fs")` calls replaced with top-level ESM `import`s for runtime portability.
 
-#### For contributors
-- Plan file at `/Users/garrytan/.claude/plans/purrfect-tumbling-quiche.md` captures the full review chain: `/investigate` → `/plan-eng-review` (5 architecture decisions D1-D5) → `/codex review` outside-voice plan challenge (9 findings, 3 reshaped the architecture into D6-D8). Plan also records the post-Codex user perf review that flipped D3 to opt-in.
-- `TODOS.md` filed P2: investigate `gbrain import` perf on large staging dirs (5,131 files takes >10 minutes when 501 takes 10 seconds — gbrain-side N+1 SQL or auto-link reconciliation suspected). P3: cache "no changes since last import" at the prepare-batch level for true no-op fast paths.
-- `Plan completion audit` ran via subagent on this branch: 17/21 DONE, 1 CHANGED (D3 made opt-in), 2 deferred (F8 benchmark harness as separate work, 24-path unit coverage went integration-only).
-
 ## [1.32.0.0] - 2026-05-10
 
 ## **Seven contributor PRs land. Three are security or hardening.**
@@ -199,13 +186,6 @@ If you run `pair-agent` and someone hits your tunnel with a multibyte token gues
 - **#1207** `bun run build` resilient to missing git HEAD. The three chained `.version` writes (`browse/dist`, `design/dist`, `make-pdf/dist`) each now use `{ git rev-parse HEAD 2>/dev/null || true; } > ...`, so an unborn HEAD produces an empty file. `readVersionHash` already returns null on empty/trim, and the CLI's stale-binary check short-circuits on null — the "no version known" path flows through existing null handling without polluting `state.binaryVersion` with a sentinel string. Contributed by @topitopongsala.
 - **#1205** AskUserQuestion preamble forbids `\uXXXX` escaping of non-ASCII characters. Adds rule 12 plus a self-check item: models that hand-escape CJK strings get codepoints wrong, so `管理工具` ends up rendered as `㄃3用箱`. Long ≠ escape. Keep characters literal. The new rule cascades through the gen-skill-docs pipeline; 35 SKILL.md files regenerate to pick it up. Contributed by @joe51317-dotcom.
 - **#1392** Mechanical bump of remaining `claude-opus-4-6` → `4-7` references across the E2E eval suite. Covers `test/helpers/eval-store.ts` and five `test/skill-e2e-*.test.ts` files. Contributed by @johnnysoftware7.
-
-#### For contributors
-
-- The AskUserQuestion preamble byte budget ratchets from 36,500 → 39,000 to absorb the new CJK rule (rule 12 + self-check item). Generated SKILL.md files for all 35 tier-≥2 skills regenerate as a single mechanical commit.
-- Two PRs from the original 9-PR plan moved to follow-up reviews after Codex outside-voice caught load-bearing problems: #1153 (SVG sanitizer) needs the sanitizer integration rebuilt against the current `setTabContent` boundary in `browse/src/write-commands.ts:319` (the original PR removed `.svg` from the allowlist; the right fix is to keep it allowed and sanitize via DOMPurify before `setTabContent`). #1141 (CLAUDE_PLUGIN_ROOT) needs runtime verification in both plugin-installed and dev-symlink modes plus scope expansion to the non-frontmatter shell snippet at `investigate/SKILL.md.tmpl:107`.
-- Five gate-tier evals hardened against non-determinism / TTY rendering quirks after the wave's first `test:gate` run surfaced them as flakes (verified pre-existing on `main`, then fixed): `office-hours-builder-wildness` retiers `gate` → `periodic` because LLM-judge creativity scoring belongs in periodic per the tier-classification rules. `plan-design-with-ui` AUQ-detection tail expands 2.5KB → 5KB so the full Step 0 box-rendered AUQ fits inside the regex window. `ask-user-question-format-compliance` budget stretches 300s → 540s (poll), 360s → 600s (PTY session), 420s → 660s (bun wrapper) to accommodate `/plan-ceo-review`'s multi-bash-block preamble on substantive branches. `benchmark-providers` gemini smoke drops the brittle `toContain('ok')` assertion in favor of a shape check on the adapter result. `skillify` scrape-prototype-path accepts JSON shape variants (`results`, `data`, `hits`, bare arrays of `{title, score}` objects) instead of grepping for the literal `"items":[` key.
-- Housekeeping: the three source PRs absorbed into v1.31.1.0 (#1242, #1394, #1393) get closed with credit comments pointing at the merge SHA.
 
 ## [1.31.1.0] - 2026-05-10
 
@@ -337,17 +317,6 @@ distinguish "model is thinking" from "model is waiting for me."
   (E2E_TOUCHFILES and E2E_TIERS); updated `test/touchfiles.test.ts`
   assertion count
 
-#### For contributors
-- Three subagent investigations across the debugging cycle were the
-  load-bearing diagnostic step: the architectural fix, the prose-AUQ
-  detector design, and the test-fictional-state retraction. The
-  pattern that worked: have a fresh-context subagent verify the
-  parent's mental model against actual file contents before committing
-  to a fix. Codex review caught that "three places" was actually
-  eight, that the proposed multi-finding test would pass trivially
-  given how `runPlanSkillFloorCheck` exits on first AUQ, and that
-  three existing tests codified the deleted fallback as PASS.
-
 ## [1.30.0.0] - 2026-05-09
 
 ## **Twenty-one community fixes land in one wave, plus closing fixes that put the Windows + codex surfaces under CI for the first time.**
@@ -415,12 +384,6 @@ If you're on a Windows install, this is the release where `~/.cyberdart/` is act
 
 - **#1290** `CLAUDE.md` and `ARCHITECTURE.md` prompt-injection thresholds aligned to the actual values in `browse/src/security.ts` (BLOCK 0.85, WARN 0.60, LOG_ONLY 0.40 — the docs had drifted to older numbers). Contributed by @brycealan.
 - **#1338** README per-skill symlink uninstall snippet corrected (the previous wording would `rm` the global skills directory rather than the project-local symlink). Contributed by @stedfn.
-
-#### For contributors
-
-- The wave was triaged by `/plan-ceo-review` (single-wave + bisect-discipline merge ordering), `/plan-eng-review` (mapped 5 cross-PR conflict pairs with explicit resolution rules + tightened the `gh pr checkout N -b pr-N` syntax), and `/codex` outside-voice review (caught 6 factual errors and 2 process improvements that both internal reviews missed; cross-model agreement was 14%). All review findings were incorporated before merge; the two CI gaps codex flagged became the CL-1 and CL-2 closing fixes that ship in this same release.
-- The five cross-PR conflict pairs documented in the plan (#1316↔#1270 codex resume line, #1309→#1310→#1308 server.ts state writes, #1366↔#1308 browser-manager, #1306↔#1308 security.ts, #1332↔#1302 ship template) all surfaced as predicted; resolutions kept both intents on each. The lone exception was the #1310/#1308 state-file write site, where `fs.writeFileSync(tmpStatePath(), ..., { mode: 0o600 })` is preserved (locks #1310's race-fix invariant exercised by `browse/test/server-tmp-state-path.test.ts`); icacls hardening still applies to every other `writeSecureFile` call site #1308 introduced (`auth.json`, the `mkdirSecure` paths, etc.).
-- PR #1302 only edited the generated `ship/SKILL.md`, not the source `ship/SKILL.md.tmpl` or `scripts/resolvers/review.ts`. The next `bun run gen:skill-docs` would have wiped its changes; the wave includes `fix(ship): port #1302 SKILL.md edits to .tmpl + resolver source` to keep the changes alive across regen.
 
 ## [1.29.0.0] - 2026-05-08
 
@@ -491,12 +454,6 @@ ongoing background sync; gbrain owns the daemon lifecycle.
 - Silent attach failure: `gbrain sources attach` now treated as stage failure if it returns non-zero. Previously the stage reported `ok:true` while the pin was missing, so unqualified `gbrain code-def` queries silently hit the default source. Now surfaces ERR with reason in the verdict block; user knows to retry.
 - Wrong-layer Path 4 early-exit (`/codex` finding #2 from `/plan-eng-review`).
 - Orphan source accumulation: the pre-pathhash `cyberdart-code-<slug>` source stayed registered across `/sync-gbrain` runs even after the path-keyed format shipped, polluting federated `gbrain search` results with stale duplicates.
-
-#### For contributors
-
-- Phase 0 verification spike at `~/.cyberdart/projects/garrytan-cyberdart/2026-05-08-gbrain-split-engine-spike.md` documents what gbrain v0.30 actually provides (no `--db` flag, `serve --http` requires postgres, `sources attach` is the v0.30 routing primitive). The approved plan's "per-worktree PGLite + per-worktree HTTP serve" architecture was invalidated by the spike; the simpler "one brain, many sources, attach for CWD pin" model collapsed ~80% of the plan's complexity.
-- `/codex` adversarial review during `/ship` caught all three correctness bugs above (silent attach, preamble inconsistency, orphan leak) before merge. Find-cost: ~10 min CC. Production-bug-cost: stale code search results that "almost worked" — the worst kind to debug.
-- gbrain CLI minimum version is now v0.30.0 (uses `sources attach`, which doesn't exist in v0.20.x). Run `cd ~/git/gbrain && git pull && bun install && bun link` to upgrade.
 
 ## [1.28.0.0] - 2026-05-07
 
@@ -597,22 +554,6 @@ SKILL.md files and start with the right skill on the first try.
 
 #### Fixed
 - N/A — all-new code paths.
-
-#### For contributors
-- New module boundary: `browse/src/socks-bridge.ts`,
-  `browse/src/proxy-config.ts`, `browse/src/proxy-redact.ts`,
-  `browse/src/xvfb.ts`, `browse/src/stealth.ts`. Each is small,
-  testable in isolation, and has matching `*.test.ts` coverage.
-- 70+ new tests across 7 files. The `bridge-chromium-e2e.test.ts`
-  test launches real Chromium through the bridge and asserts the
-  request actually traversed it (upstream connect counter + HTTP
-  fixture hit counter both increment).
-- `socks` npm dependency added (~30KB).
-- Xvfb + x11-utils added to `.github/docker/Dockerfile.ci` so
-  `headed-xvfb`/`headed-orphan-cleanup` exercise the Linux container
-  path on every CI run instead of only manual smoke tests.
-- Community PR #1355 from @garrytan-agents merged; attribution
-  preserved on the merging commit.
 
 ## [1.27.1.0] - 2026-05-06
 
@@ -829,39 +770,6 @@ end, just under the new "artifacts" terminology.
   `test/cyberdart-artifacts-init.test.ts` covering the same gh-mock pattern
   plus the new GitLab branch and the brain-admin printout.
 
-#### For contributors
-
-- **59 new unit tests + 2 gate-tier E2E tests + 4 regression tests.**
-  Highlights:
-  - `test/cyberdart-gbrain-mcp-verify.test.ts` (13 tests) covers each error
-    class via mocked curl, asserts the dual `Accept` header is set on
-    every call, regression-tests the token-never-on-stdout invariant.
-  - `test/cyberdart-artifacts-init.test.ts` (16 tests) covers gh / glab /
-    both / neither provider selection, HTTPS canonical storage, the
-    URL-form-supported branch in the brain-admin printout, and idempotent
-    re-run.
-  - `test/cyberdart-gbrain-detect-mcp-mode.test.ts` (19 tests) verifies each
-    of the 3 detection tiers in isolation, plus the schema-regression
-    check that `/sync-gbrain`'s parser doesn't break on the new fields.
-  - `test/migrations-v1.27.0.0.test.ts` (11 tests) covers all six
-    migration steps including journal-resume, idempotent re-run, the
-    add-before-remove ordering for source swap, and the remote-MCP
-    print-only branch.
-  - `test/no-stale-cyberdart-brain-refs.test.ts` greps the broader tree
-    (bin, scripts, *.tmpl, generated *.md, test/) for stale identifiers.
-  - `test/post-rename-doc-regen.test.ts` confirms gen-skill-docs output
-    has no `cyberdart-brain` strings post-rename.
-  - `test/setup-gbrain-path4-structure.test.ts` is a fast structural lint
-    that catches AUQ-pacing regressions in the Path 4 prose without
-    spending eval tokens.
-- **`scripts/resolvers/preamble/generate-brain-sync-block.ts`** detects
-  remote-http mode by reading `~/.claude.json` directly (no claude
-  subprocess on every preamble — the hot path stays fast).
-- **`test/helpers/touchfiles.ts`** wires `setup-gbrain-remote` and
-  `setup-gbrain-bad-token` into the gate-tier E2E selection.
-- **Preamble byte budget ratcheted from 35K to 36.5K** to honor the
-  remote-mode probe in `generate-brain-sync-block.ts`.
-
 ## [1.26.5.0] - 2026-05-06
 
 ## **The v1.26 memory feature now actually works on a fresh `/setup-gbrain` install, and `/sync-gbrain --full` actually registers github-hosted code sources.**
@@ -899,10 +807,6 @@ Run `/setup-gbrain` on a clean install, choose any path, and Step 7.5 actually p
 - `test/cyberdart-memory-ingest.test.ts` — two regression tests stand up a fake `gbrain` shim on PATH and run the real `--bulk` ingest pipeline against a planted Claude Code session. The first asserts the writer hits `gbrain put <slug>` (not `put_page`) and that title, type, AND tags arrive in the put stdin. The second points the writer at a legacy-only shim and asserts the availability probe surfaces a single missing-subcommand error instead of N per-page failures. Contributed by @AZ-1224 (PR #1341); the assertions for title/type/tags arriving in stdin are added on top here. The strengthened test surfaced a deeper issue in PR #1328's inject branch: it searched for `\n---\n` (with trailing newline) but `buildTranscriptPage` joins frontmatter without a trailing newline, so the search never matched. Two-line fix on top: search for `\n---` only.
 - `test/cyberdart-gbrain-sync.test.ts` — four cases from PR #1330 (dot-host, SCP-style remote, multi-dot host, long org/repo forcing hash-truncate) plus two new edge cases this version (no-origin fallback path; basename-sanitizes-to-empty). Each test spawns the CLI inside a temp git repo and asserts the derived id passes gbrain's validator regex. Contributed by @radubach for the four core cases.
 
-#### For contributors
-- Codex outside-voice plan review caught three P1 ship-blockers in the originally proposed merge (the no-frontmatter-wrap branch from PR #1341 alone would have silently dropped title/type/tags from every transcript page — its own tests passed because they only asserted `agent: claude-code`). The plan pivoted from `merge #1341 + cherry-pick from #1328` to `merge #1328 + hybrid writer + cherry-pick #1341's tests, strengthened`. Two-pass live smoke against real gbrain (where the database connects) confirmed source-id length goes 38 → 27 chars; memory-ingest writer correctness was verified by the strengthened shim tests against a real `gbrain` CLI process.
-- Two follow-up TODOs filed: P2 to bump the `bin/cyberdart-gbrain-install` pin in lockstep with cyberdart memory-feature releases (issue #1305 part 2), P3 to handle source-id cross-host collisions (`github.com/acme/foo` and `gitlab.com/acme/foo` currently collapse to the same id; rare but silent).
-
 ## [1.26.4.0] - 2026-05-05
 
 ## **`/autoplan` review reports now reliably land at the bottom of the plan, even when an older copy lives mid-file.**
@@ -925,9 +829,6 @@ The `## CYBERDART REVIEW REPORT` section had a write rule that contradicted itse
 
 #### Added
 - `test/gen-skill-docs.test.ts` — new `CYBERDART REVIEW REPORT delete-then-append flow` describe block: 4 SKILL.md target tests + 1 source resolver test. Static, deterministic, free.
-
-#### For contributors
-- The `/autoplan` E2E approach attempted in the plan was dropped after a paid run revealed that `--disallowedTools AskUserQuestion` makes autoplan bail at the Phase 1 premise gate via the plan-file fallback. The PTY harness can't drive autoplan through its review phases without auto-progression of AskUserQuestions. The static prompt-text test catches the load-bearing change without needing that infrastructure.
 
 ## [1.26.3.0] - 2026-05-03
 
@@ -965,11 +866,6 @@ Two functional gaps closed in one ship: the cwd repo wasn't actually being index
 - `test/cyberdart-gbrain-sync.test.ts` updated for native code surfaces (12 tests, was 8) — adds source-id derivation, dry-run no-lock, stale-lock takeover, fresh-lock blocking.
 - `test/skill-e2e-memory-pipeline.test.ts` updated to assert `would: gbrain sources add` instead of `would: gbrain import`.
 - Ship golden fixtures (`test/fixtures/golden/{claude,codex,factory}-ship-SKILL.md`) refreshed.
-
-#### For contributors
-- The 4-digit `MAJOR.MINOR.PATCH.MICRO` version in `package.json` and `VERSION` is the source of truth.
-- Run `bun run gen:skill-docs --host all` after editing any `.tmpl` to regenerate per-host SKILL.md files; commit both.
-- gbrain v0.25.1 already ships `gbrain sync --watch [--interval N]` and `gbrain sync --install-cron` natively. The previously-deferred V1.5 P0 daemon can wire through to those rather than building a cyberdart-side watcher.
 
 ## [1.26.2.0] - 2026-05-03
 
@@ -1016,11 +912,6 @@ same language.
 - `test/helpers/touchfiles.ts` duplicate `plan-design-review-plan-mode` keys deleted (line 243 in `E2E_TOUCHFILES`, line 524 in `E2E_TIERS`). Effective tier is now `gate` again, matching the other three siblings.
 - `scripts/resolvers/review.ts` added to all four plan-mode-test touchfiles entries so changes to the `{{PLAN_FILE_REVIEW_REPORT}}` resolver text trigger all four sibling tests in `bun run eval:select`.
 
-#### For contributors
-
-- 6 new classifier unit tests in `test/helpers/claude-pty-runner.unit.test.ts` (70 → 76).
-- New `initialPlanContent?: string` option on `runPlanSkillObservation` for seeding a draft plan into a test run before invoking the skill. Lets STOP-gate regression tests pre-pump guaranteed-finding-triggering complexity (8+ files, custom-vs-builtin smell) so the skill has something concrete to react to.
-
 ## [1.26.1.0] - 2026-05-03
 
 ## **`cyberdart-gbrain-sync` ships host-agnostic. Curated artifacts push from Claude Code, Codex CLI, or a dev workspace — same orchestrator, same install, same result.**
@@ -1034,12 +925,6 @@ The orchestrator resolves its sibling `cyberdart-brain-sync` binary via `import.
 ### Changed
 
 - `runBrainSyncPush` (`bin/cyberdart-gbrain-sync.ts:222`) resolves the curated-push binary as a sibling of the running script. One line, single source of truth: `join(import.meta.dir, "cyberdart-brain-sync")`.
-
-### For contributors
-
-- New regression test in `test/cyberdart-gbrain-sync.test.ts` pins sibling-resolution behavior so future refactors can't drift the orchestrator back to a host-coupled path.
-- `plan-review` preamble byte ratchet bumped from 33 KB to 34 KB to honor the gbrain-sync block and AskUserQuestion recommendation pattern that shipped in v1.25.1.0/v1.26.0.0. The test's own comment authorizes this exact kind of intentional-growth ratchet bump.
-- `claude-ship-SKILL.md` and `factory-ship-SKILL.md` golden fixtures regenerated against the live `/ship` template (canonical `Recommendation:` line from v1.25.1.0 now reflected in the goldens).
 
 ## [1.26.0.0] - 2026-05-02
 
@@ -1124,14 +1009,6 @@ V1 is **Goldilocks** scope per CEO D18 (Codex F10 strategic challenge): the valu
 - `package.json` version 1.25.1.0 → 1.26.0.0
 - `VERSION` 1.25.1.0 → 1.26.0.0
 
-#### For contributors
-
-- The plan file at `/Users/garrytan/.claude/plans/ok-actually-lets-go-luminous-thacker.md` (~890 lines) is the canonical V1 design source, including office-hours findings, CEO review expansions (6 cherry-picks accepted, 1 reverted+replaced), Codex outside-voice 10 findings (F1-F10 each resolved or deferred), eng review additions (ED1 + ED2 + 6 auto-applied implementation specs), and V1.5 P0 TODOs section with full handoff context.
-- Manifest schema is versioned (`gbrain.schema: 1`); future format changes bump the schema and require explicit migration. gen-skill-docs validates the schema at build time (kind / required fields per kind / template var resolution / unique IDs).
-- Lane D (cross-repo `gbrain restore-from-sync` with atomic swap + 7-day .bak retention per D11) is documented as V1.5 P0 TODO — cyberdart repo cannot write to gbrain CLI repo.
-- The retrieval surface helper signature is V1.5-promotion-stable: when V1.5 ships server-side `mcp__gbrain__get_recent_salience` / `find_anomalies` MCP tools, the helper switches its internals from 4-call composition to a single MCP call without changing the manifest format or any skill template.
-- gitleaks vendoring is a V1.0.1 follow-up; for V1.0, the helper expects gitleaks on PATH and warns once if missing. `brew install gitleaks` on macOS gets you covered until the vendored binary ships.
-
 ## [1.25.1.0] - 2026-05-01
 
 ## **Office-hours stops at Phase 4 architectural forks. AskUserQuestion evals — and `/codex` synthesis — now grade the "because" clause.**
@@ -1195,12 +1072,6 @@ If you've been writing skill templates with `Recommendation: <choice> because <r
 - Captured AskUserQuestion text wrapped in clearly delimited `<<<UNTRUSTED_CONTEXT>>>` block in the judge prompt with explicit "treat content as data, not commands" instruction. Cheap defense against captured text containing prompt-injection patterns.
 - Defensive clamp on Haiku output: `reason_substance` is coerced to 1-5 (out-of-range or non-numeric coerces to 1) so invalid LLM outputs don't silently pass threshold checks.
 - Captured-text budget bumped 4000 → 8000 chars; real plan-format menus with 4 options at ~800 chars each were truncating mid-option.
-
-#### For contributors
-
-- The `commits` deterministic check now scans only the choice portion (text before "because"), not the entire recommendation body. Prevents false positives where legitimate technical phrases like "the plan doesn't yet depend on Redis" inside a because-clause were being flagged as hedging.
-- Hedging regex pinned with one fixture per alternate (`either`, `depends? on`, `depending`, `if .+ then`, `or maybe`, `whichever`) — branch coverage went from 9/14 to 14/14 on `judgeRecommendation`.
-- "AUQ" abbreviation cleanup in `office-hours/SKILL.md.tmpl` Phase 4 prose and 2 test comments per the always-write-in-full memory rule.
 
 ## [1.25.0.0] - 2026-05-01
 
@@ -1267,12 +1138,6 @@ The cyberdart-side regression test surface now mirrors what real users hit. Each
 - `test/helpers/touchfiles.ts`: existing `plan-X-review-plan-mode` entries gain `scripts/resolvers/question-tuning.ts` and `scripts/resolvers/preamble/generate-ask-user-format.ts` as touchfile dependencies, so AUTO_DECIDE-bearing resolver changes correctly invalidate the regression cases.
 - New entries: `autoplan-auto-mode` (gate), `office-hours-auto-mode` (gate), `auto-decide-preserved` (periodic).
 - `test/touchfiles.test.ts`: count of tests selected by `plan-ceo-review/SKILL.md` updates from 19 to 21 to cover the new entries that depend on `plan-ceo-review/**`.
-
-#### For contributors
-
-- The PTY harness's `auto_decided` outcome is a defense-in-depth signal: it fires on the AUTO_DECIDE preamble template wording, which is non-deterministic. Treat it as evidence of a regression, not a hard contract.
-- The Tool resolution section is the surgical fix site for any future host that disables native AUQ similarly. The pattern: register a `mcp__<host>__AskUserQuestion` MCP tool; the cyberdart preamble already tells the model to prefer it. No skill-template changes needed per-host.
-- `auto-decide-preserved` runs in an isolated `CYBERDART_HOME` tmpdir to avoid mutating the developer's real `~/.cyberdart` state. When debugging, set `CYBERDART_HOME` manually to a scratch dir and run the same setup the test does (`cyberdart-config set question_tuning true`, then `cyberdart-question-preference --write`).
 
 ## [1.24.0.0] - 2026-04-30
 
@@ -1349,10 +1214,6 @@ Branch totals come from `git diff --shortstat origin/main..HEAD` after every lan
 - **POSIX-bound test surfaces for full Windows parity.** 25 tests are excluded from the curated Windows lane via the `WINDOWS_FRAGILE_PATTERNS` scan in `scripts/test-free-shards.ts`. Concrete examples: `test/ship-version-sync.test.ts:72` hardcodes `/bin/bash`, `test/helpers/providers/claude.ts:22` (now fixed in this release), `package.json:12` build step shells out to `bash`/`chmod`. Porting these is the gap between "curated Windows lane" and "full Windows parity." P4 follow-up.
 - **Native PowerShell setup support.** `setup` is bash + symlink heavy at `setup:404`. v1.24.0.0 documents Git Bash / MSYS as the supported Windows install path in `AGENTS.md`. A native PowerShell port closes the last off-the-shelf-for-Windows gap. P4 follow-up.
 
-#### For contributors
-
-- Hardening direction credited to the McGluut fork: <https://github.com/mcgluut/cyberdart>. The Bun.which-based resolver is upstream's adaptation of the cross-platform binary lookup the fork implemented in `claude-bin.ts`; the path-portability helper is upstream's factoring of the `${CLAUDE_PLUGIN_DATA:-...}` chain the fork inlined per-skill. The curated Windows test job is upstream's reading of what `test-free-shards.ts` was reaching toward, applied with explicit attention to which surfaces are actually Windows-safe today.
-
 ## [1.23.0.0] - 2026-04-30
 
 ## **Every PR title now starts with `vX.Y.Z.W`. `/ship`, `/document-release`, and the GitHub Action all enforce it.**
@@ -1391,11 +1252,6 @@ The helper itself rejects malformed VERSION values (anything outside `^[0-9]+(\.
 - `ship/SKILL.md.tmpl` create-PR snippets (lines 867 and 876): inline comment makes the `v$NEW_VERSION` requirement unmissable when reading the step.
 - `document-release/SKILL.md.tmpl` Step 9: new "PR/MR title sync" sub-step calls the same helper after the body update. Catches the case where Step 8 bumped VERSION after `/ship` had already created the PR — title follows VERSION instead of going stale.
 - `.github/workflows/pr-title-sync.yml`: drops the "eligible only if already prefixed" gate. Sources the helper, rewrites unconditionally on every VERSION change. Defense-in-depth backstop for PRs opened outside the skills (manual `gh pr create`, web UI). Uses `env:` for `OLD_TITLE` so YAML expression injection can't reach `run:`.
-
-#### For contributors
-
-- The helper is a regular `bin/` script with `set -euo pipefail`, no external deps beyond bash + sed. Slots into the existing pattern alongside `bin/cyberdart-config`, `bin/cyberdart-slug`, `bin/cyberdart-next-version`.
-- Test coverage gates this — any future change to the rule has to update the test fixtures or the suite goes red.
 
 ## [1.21.1.0] - 2026-04-28
 
@@ -1436,11 +1292,6 @@ For `/plan-ceo-review` specifically: any future preamble slim-down or template e
 - `test/skill-e2e-plan-ceo-plan-mode.test.ts`: assertion narrowed from `['asked', 'plan_ready']` to `'asked'` only. Failure message now branches on `outcome` (plan_ready vs timeout vs silent_write) with a tailored diagnosis line, and references skill-template section names instead of line numbers (durable to template edits).
 - `isPermissionDialogVisible`: bare `Do you want to proceed?` now requires a file-edit context co-trigger (`Edit to <path>` or `Write to <path>`). Other clauses (`requested permissions to`, `allow all edits`, `always allow access to`, `Bash command requires permission`) remain unconditional.
 - `test/skill-e2e-plan-ceo-mode-routing.test.ts`: replaces the local `1500` magic number with the shared `TAIL_SCAN_BYTES` constant.
-
-#### For contributors
-
-- The runner change is additive and the existing sibling smokes (`plan-eng`, `plan-design`, `plan-devex`, `plan-mode-no-op`) keep their loose `['asked', 'plan_ready']` assertion. Their behavior is unchanged.
-- Post-merge follow-ups captured in `TODOS.md`: per-finding AskUserQuestion count assertion (V2), env-driven cyberdart-config overrides (so `QUESTION_TUNING=false` actually isolates the test), path-confusion hardening on `SANCTIONED_WRITE_SUBSTRINGS`.
 
 ## [1.20.0.0] - 2026-04-28
 
@@ -1535,14 +1386,6 @@ Every spawned skill gets its own scoped token. The shape:
 - `test/skill-e2e-skillify.test.ts` — 5 gate-tier E2E scenarios (`claude -p` driven, deterministic against local file:// fixtures): match path routes to bundled skill, prototype path drives `$B` and emits JSON, skillify happy writes complete skill tree, provenance refusal leaves nothing on disk, approval-gate reject removes the temp dir.
 - `test/helpers/touchfiles.ts` registers all 5 new E2E entries with deps on `scrape/**`, `skillify/**`, `browse/src/browser-skill-write.ts`, plus the runtime modules.
 
-#### For contributors
-
-- The browser-skill SKILL.md frontmatter has a hard contract enforced by `parseSkillFile()` and `test/skill-validation.test.ts`. Required: `host` (string), `triggers` (string list), `args` (mapping list). Optional: `trusted` (bool, defaults false), `version`, `source` (`human`/`agent`), `description`.
-- The canonical SDK at `browse/src/browse-client.ts` and the sibling at `browser-skills/hackernews-frontpage/_lib/browse-client.ts` MUST be byte-identical. The skill-validation test fails the build otherwise. When the canonical SDK changes, update every bundled skill's `_lib/` copy. Agent-authored skills via `/skillify` get a freshly-copied SDK at synthesis time, so they're frozen at the version they were authored against (no drift possible).
-- The atomic-write helper enforces "no half-written skills." Always call `stageSkill` → run tests → `commitSkill` (success) OR `discardStaged` (failure). Never write directly to the final tier path. The helper's `validateSkillName` is the only naming gate, keep it tight (lowercase letters/digits/dashes, ≤64 chars, no consecutive dashes, no leading digit).
-- `checkTabAccess` policy: `ownOnly` is the only signal that constrains access. `isWrite` stays in the signature for callers that want to log or branch elsewhere, but doesn't gate the decision. Adding new policy axes (e.g., per-skill tab quotas) belongs in `docs/designs/`, not as a sneaky `isWrite` overload.
-- `/automate` and the Phase 4 follow-ups (Bun runtime distribution, OS FS sandbox, fixture-staleness detection) are tracked in `docs/designs/BROWSER_SKILLS_V1.md` and `TODOS.md`. The `/automate` skill reuses `/skillify` and `browser-skill-write.ts` as-is; new code is the per-mutating-step confirmation gate.
-
 ## [1.17.0.0] - 2026-04-26
 
 ## **Your cyberdart memory now actually lives in gbrain.**
@@ -1592,12 +1435,6 @@ Local Mac is the producer of artifacts and the worktree advances automatically w
 
 Your cyberdart memory is searchable now. Run a CEO plan review or office-hours session, sync runs at skill-end automatically, and `gbrain search` finds the plan content from any gbrain client (this Claude Code session, future Macs, optional cloud agents like OpenClaw). One source of truth across machines. The placeholder is dead.
 
-### For contributors
-
-- `bin/cyberdart-brain-consumer` is deprecated in this release; removal in v1.18.0.0.
-- The `gbrain_url` and `gbrain_token` config keys are now no-ops. They remain readable for one cycle for back-compat, removed in v1.18.0.0.
-- Three pre-existing test failures on this branch (`cyberdart-config gbrain keys > CYBERDART_HOME overrides real config dir`, `no compiled binaries in git > git tracks no files larger than 2MB`, `Opus 4.7 overlay — pacing directive`) were verified to fail on the base branch too. Out of scope for this PR; flagged for a follow-up.
-
 ## [1.16.0.0] - 2026-04-28
 
 ## **Paired-agent tunnel allowlist now matches what the docs already promised. Catch-22 resolved, gate is unit-testable.**
@@ -1639,11 +1476,6 @@ Three things change immediately. **First**, paired agents can actually open and 
 - `browse/test/dual-listener.test.ts`: `/command` handler test updated to assert the inline `TUNNEL_COMMANDS.has(cmd)` check is now `canDispatchOverTunnel(body?.command)` — proves the gate is delegated to the pure function and not duplicated.
 - `docs/REMOTE_BROWSER_ACCESS.md:35,168`: bumped "17-command allowlist" to "26-command allowlist". Corrected the denied-commands list (removed `eval`, which IS in the allowlist; the prior doc was wrong).
 - `CLAUDE.md`: bumped the transport-layer security section's "17-command browser-driving allowlist" reference to "26-command".
-
-#### For contributors
-
-- The plan was reviewed under `/plan-eng-review` plus 2 sequential codex outside-voice passes during plan mode. Round-1 codex caught a doc-target mistake (we were going to update `SIDEBAR_MESSAGE_FLOW.md` instead of `REMOTE_BROWSER_ACCESS.md`) and a wrong-layer test design. Round-2 codex caught that the round-1 correction was still wrong (the chosen test harness only binds the local listener) AND that the docs promised 6 more commands than the allowlist had. All 6 of 7 substantive findings landed in the implementation; the 7th (a pre-existing `/pair-agent` `/health` probe mismatch at `cli.ts:656-668`) is logged as out of scope.
-- One known accepted risk: `tabs` over the tunnel returns metadata for ALL tabs in the browser, not just tabs the agent owns. The user authored the trust relationship when they paired the agent, the agent already can't read CONTENT of unowned tabs (write commands blocked, the active tab can't be switched without a `tab <id>` command that's NOT in the allowlist), and tab IDs already leak via the 403 `hint` field on disallowed `goto`. Codex noted that tightening this requires touching the ownership gate itself (the gate falls back to `getActiveTabId()` BEFORE dispatch in `server.ts:603-614`), which is materially out of scope for a catch-22 fix. Logged in the plan failure-mode table as accepted.
 
 ## [1.15.0.0] - 2026-04-26
 
@@ -1718,13 +1550,6 @@ The harness itself is a reusable primitive. `runPlanSkillObservation()` watches 
 
 - `test/helpers/plan-mode-helpers.ts`: superseded by `claude-pty-runner.ts`. Zero callers remained after the rewrite.
 
-#### For contributors
-
-- `test/helpers/touchfiles.ts`: 5 plan-mode test selections + e2e-harness-audit selection now point at `claude-pty-runner.ts` instead of the deleted helper. 6 new entries (`ask-user-question-format-pty`, `plan-ceo-mode-routing`, `plan-design-with-ui-scope`, `budget-regression-pty`, `ship-idempotency-pty`, `autoplan-chain-pty`) with tier classifications: 3 gate, 3 periodic.
-- `test/e2e-harness-audit.test.ts`: recognizes `runPlanSkillObservation` as a valid coverage path alongside the legacy `canUseTool` / `runPlanModeSkillTest` patterns.
-- New unit test: `test/gen-skill-docs.test.ts` asserts plan-review preambles stay under 33 KB and the slim Voice section preserves its load-bearing semantic contract (lead-with-the-point, name-the-file, user-outcome framing, no-corporate, no-AI-vocab, user-sovereignty).
-- `test/touchfiles.test.ts`: skill-specific change selection count updated 15 → 18 to match the 6 new touchfile entries that depend on `plan-ceo-review/**`.
-
 ## [1.14.0.0] - 2026-04-25
 
 ## **The cyberdart browser sidebar is now an interactive Claude Code REPL with live tab awareness.**
@@ -1770,14 +1595,6 @@ The old chat queue is gone. `sidebar-agent.ts`, `/sidebar-command`, `/sidebar-ch
 - **Chat-related state** in server.ts: `ChatEntry`, `SidebarSession`, `TabAgentState`, `pickSidebarModel`, `addChatEntry`, `processAgentEvent`, `killAgent`, the agent-health watchdog, `chatBuffer`, the per-tab agent map.
 - **Chat UI in sidepanel.html**: primary-tab nav, `<main id="tab-chat">`, the chat input bar, the experimental "Browser co-pilot" banner, the security event banner, the `clear-chat` footer button.
 - **Five obsolete test files**: `sidebar-agent.test.ts`, `sidebar-agent-roundtrip.test.ts`, `security-e2e-fullstack.test.ts`, `security-review-fullstack.test.ts`, `security-review-sidepanel-e2e.test.ts`. Plus 5 chat-only describe blocks inside surviving security tests (loadSession session-ID validation, switchChatTab DocumentFragment, pollChat reentrancy, sidebar-tabs URL sanitization, agent queue security).
-
-#### For contributors
-- **`browse/src/pty-session-cookie.ts`** mirrors `sse-session-cookie.ts`. Same TTL, same opportunistic pruning, separate registry (PTY tokens must never be valid as SSE tokens or vice versa).
-- **`docs/designs/SIDEBAR_MESSAGE_FLOW.md`** rewritten around the Terminal flow: WebSocket upgrade, dual-token model (`AUTH_TOKEN` for `/pty-session`, `cyberdart-pty.<token>` for `/ws`, `INTERNAL_TOKEN` for server↔agent loopback), threat-model boundary (Terminal tab bypasses the prompt-injection stack on purpose; user keystrokes are the trust source).
-- **`browse/test/terminal-agent.test.ts`** (16 tests) + `terminal-agent-integration.test.ts` (real `/bin/bash` PTY round-trip, raw `Sec-WebSocket-Protocol` upgrade verification) + `tab-each.test.ts` (10 tests with mock `BrowserManager`) + `sidebar-tabs.test.ts` (27 structural assertions locking the chat-rip invariants).
-- **CLAUDE.md** updated with the dual-token model, the cookie-vs-protocol rationale, and the cross-pane injection pattern.
-- **`vendor:xterm`** build step copies `xterm@5.x` and `xterm-addon-fit` from `node_modules/` into `extension/lib/` at build time. xterm files are gitignored.
-- **TODOS.md** carries three v1.1+ follow-ups: PTY session survival across sidebar reload (Issue 1C deferred), `/health` `AUTH_TOKEN` distribution audit (codex finding, pre-existing soft leak), and dropping the now-dead `security-classifier.ts` ML pipeline.
 
 ## [1.13.0.0] - 2026-04-25
 
@@ -1867,11 +1684,6 @@ Invoke `/plan-eng-review` from plan mode. You get the scope-mode question (`SCOP
 - `scripts/resolvers/preamble/generate-plan-mode-handshake.ts` deleted (vestigial, superseded by `generatePlanModeInfo` in `generate-completion-status.ts`).
 - Four question-registry entries removed from `scripts/question-registry.ts`: `plan-ceo-review-plan-mode-handshake`, `plan-eng-review-plan-mode-handshake`, `plan-design-review-plan-mode-handshake`, `plan-devex-review-plan-mode-handshake`. These IDs are no longer emitted by any skill; keeping them in the registry was dead weight.
 
-#### For contributors
-
-- `test/gen-skill-docs.test.ts` now has a "plan-mode-info resolver" describe block that (a) scans every generated `SKILL.md` under the repo root plus every host subdir (`.agents/`, `.openclaw/`, `.opencode/`, `.factory/`, `.hermes/`, `.kiro/`, `.cursor/`, `.slate/`) and asserts `## Plan Mode Handshake` is absent, and (b) asserts `## Skill Invocation During Plan Mode` lands in the first 15,000 bytes of each of the four review skills' generated `SKILL.md`. Both assertions run on every `bun test`. Any PR that re-introduces the handshake resolver fails CI immediately.
-- The `interactive: true` frontmatter flag on the four review skill templates is preserved. It still has a reader: `test/e2e-harness-audit.test.ts` uses it to enforce `canUseTool` coverage on interactive review E2E tests. Removing the flag was part of the initial plan; codex outside-voice review caught the downstream dependency during review and that decision was reversed.
-
 ## [1.12.0.0] - 2026-04-24
 
 ## **`/setup-gbrain` — any coding agent goes from zero to "gbrain is running, and I can call it" in under five minutes.**
@@ -1922,10 +1734,6 @@ Previously: install gbrain manually, hope nothing was shadowing on PATH, paste t
 #### Changed
 - `/health` skill adds a GBrain composite dimension (weight 10%, wrapped in `timeout 5s`). Existing category weights rebalanced to keep the composite score on the 0–10 scale; historical JSONL entries without a `gbrain` field read as `null` for trend comparison.
 
-#### For contributors
-- Pre-Impl Gate 1 verified Supabase Management API shape before any code was written. Corrected two wrong endpoint assumptions (`POST /v1/projects` not `/v1/organizations/{ref}/projects`; `/config/database/pooler` not `/config/database`) and confirmed gbrain's `--non-interactive` + `GBRAIN_DATABASE_URL` env var are real. Documented in the plan file.
-- Review discipline: CEO review + Codex outside voice + Eng review all passed in plan mode before any code landed (3 reviews, 21 D-decisions, 0 unresolved gaps).
-
 ## [1.11.1.0] - 2026-04-23
 
 ## **Plan mode stopped silently rubber-stamping your reviews. The forcing questions actually fire now.**
@@ -1971,13 +1779,6 @@ If you're building new interactive skills (yours or contributing to cyberdart), 
 - New question registry entries `plan-{ceo,eng,design,devex}-review-plan-mode-handshake` with `door_type: 'one-way'` in `scripts/question-registry.ts`. Question-tuning `never-ask` preferences cannot suppress this gate.
 - New telemetry field `plan_mode_handshake` in `~/.cyberdart/analytics/skill-usage.jsonl` with outcomes `fired`, `A-exit`, `C-cancel` written synchronously as the handshake fires. Captures outcomes that would otherwise terminate the skill before end-of-run telemetry runs.
 - `test/helpers/agent-sdk-runner.ts` extended with optional `canUseTool` callback parameter. When supplied, flips `permissionMode` to `default`, auto-adds `AskUserQuestion` to `allowedTools`, and passes the callback to the SDK. Exports `passThroughNonAskUserQuestion` helper for tests that only want to assert on AskUserQuestion but auto-allow other tools.
-
-#### For contributors
-
-- Added 5 unit tests in `test/gen-skill-docs.test.ts` verifying handshake presence in 4 interactive skills, absence in non-interactive skills, absence in non-Claude host outputs, composition ordering (handshake precedes upgrade-check), and 0C-bis STOP block wiring.
-- Added 6 unit tests in `test/agent-sdk-runner.test.ts` verifying permission-mode flip, allowedTools auto-injection, canUseTool callback propagation, and pass-through helper behavior.
-- Added 6 gate-tier entries to `test/helpers/touchfiles.ts` covering the new E2E test surface. Dependency glob fires any of the new tests when: the relevant skill template, the handshake resolver, preamble composition, the question registry, the one-way-door classifier, or the agent-sdk-runner changes.
-- Filed 2 P1/P2 follow-ups in `TODOS.md`: structural STOP-Ask forcing function across all skills (broader class of bug beyond plan-mode entry), and extending `interactive: true` audit to non-review interactive skills like `/office-hours`, `/codex`, `/investigate`, `/qa`.
 
 ## [1.11.0.0] - 2026-04-23
 
@@ -2025,15 +1826,6 @@ If you're routinely running 3-10 Conductor windows against the same repo, this i
 
 - Self-reference bug in the version gate. The first live CI run (PR #1168 at v1.8.0.0) was rejected as "stale" because the util counted the PR being checked as a queued claim, inflating the next slot by one. Fixed with `--exclude-pr` flag + `gh pr view` auto-detect so the util silently filters the current branch's PR. Caught and fixed in the same ship — exactly the dogfood loop the release is designed for.
 
-#### For contributors
-
-- `test/cyberdart-next-version.test.ts`. 21 pure-function tests (parseVersion / bumpVersion / cmpVersion / pickNextSlot with 8 collision scenarios / markActiveSiblings 4 cases) plus a CLI smoke test against the live repo.
-- Golden ship fixtures refreshed for all three hosts (claude, codex, factory) after Step 12 and Step 19 template changes. This is exactly the blast radius Codex flagged during the CEO review (cross-model tension #8), handled in the same PR rather than as a follow-up.
-
-## **Plan mode stopped silently rubber-stamping your reviews. The forcing questions actually fire now.**
-
-If you ran `/plan-ceo-review` or any interactive review skill while in plan mode, the skill used to read your diff, skip every STOP gate, write a plan file, and exit. Zero AskUserQuestion calls. Zero mode selection. Zero per-section decisions. The skill's interactive contract got outranked by plan mode's system-reminder, which tells the model to run its own workflow and ignore everything else. This release adds a preamble-level STOP gate that fires before any analysis, so you always get the interactive review the skill was designed to run.
-
 ### What shipped
 
 Four interactive review skills (plan-ceo-review, plan-eng-review, plan-design-review, plan-devex-review) now emit a two-option AskUserQuestion the moment plan mode is detected: exit-and-rerun interactively, or cancel. No silent bypass. The gate is classified one-way-door in the question registry so `/plan-tune` preferences can't auto-decide past it. Outcome gets logged to `~/.cyberdart/analytics/skill-usage.jsonl` synchronously when the handshake fires, so A-exit and C-cancel are captured even though they terminate the skill before the end-of-run telemetry block.
@@ -2073,13 +1865,6 @@ If you're building new interactive skills (yours or contributing to cyberdart), 
 - New question registry entry `plan-mode-handshake` with `door_type: 'one-way'` in `scripts/question-registry.ts`. Question-tuning `never-ask` preferences cannot suppress this gate.
 - New telemetry field `plan_mode_handshake` in `~/.cyberdart/analytics/skill-usage.jsonl` with outcomes `fired`, `A-exit`, `C-cancel` written synchronously as the handshake fires. Captures outcomes that would otherwise terminate the skill before end-of-run telemetry runs.
 - `test/helpers/agent-sdk-runner.ts` extended with optional `canUseTool` callback parameter. When supplied, flips `permissionMode` to `default`, auto-adds `AskUserQuestion` to `allowedTools`, and passes the callback to the SDK. Exports `passThroughNonAskUserQuestion` helper for tests that only want to assert on AskUserQuestion but auto-allow other tools.
-
-#### For contributors
-
-- Added 8 unit tests in `test/gen-skill-docs.test.ts` verifying handshake presence in 4 interactive skills, absence in non-interactive skills, absence in non-Claude host outputs, composition ordering (handshake precedes upgrade-check), and 0C-bis STOP block wiring.
-- Added 6 unit tests in `test/agent-sdk-runner.test.ts` verifying permission-mode flip, allowedTools auto-injection, canUseTool callback propagation, and pass-through helper behavior.
-- Added 6 gate-tier entries to `test/helpers/touchfiles.ts` covering the new E2E test surface. Dependency glob fires any of the new tests when: the relevant skill template, the handshake resolver, preamble composition, the question registry, the one-way-door classifier, or the agent-sdk-runner changes.
-- Filed 2 P1/P2 follow-ups in `TODOS.md`: structural STOP-Ask forcing function across all skills (broader class of bug beyond plan-mode entry), and extending `interactive: true` audit to non-review interactive skills like `/office-hours`, `/codex`, `/investigate`, `/qa`.
 
 ## [1.10.1.0] - 2026-04-23
 
@@ -2164,18 +1949,6 @@ Three dollars per run.
   harness can resolve `{{INHERIT:claude}}` directives without synthesizing a
   full `TemplateContext`.
 
-#### For contributors
-
-- `test/helpers/touchfiles.ts` — registered the new eval in both
-  `E2E_TOUCHFILES` (deps: `model-overlays/**`, `overlay-nudges.ts`, runner,
-  resolver) and `E2E_TIERS` (`periodic`). Passes the
-  `test/touchfiles.test.ts` completeness check.
-- The harness is deliberately parametric. Adding a second overlay nudge
-  measurement (for the remaining three nudges in `opus-4-7.md`, or any
-  future nudge in any overlay file) is a single entry in
-  `test/fixtures/overlay-nudges.ts`. Total incremental effort: ~15 minutes
-  per fixture.
-
 ## [1.10.0.0] - 2026-04-23
 
 ## **Plan reviews walk you through each issue again, and every question is now a real decision brief.**
@@ -2225,13 +1998,6 @@ Upgrade and re-run your next plan review. You should see D-numbered prompts (D1,
 - `test/skill-e2e-plan-format.test.ts`: extended with v1.10.0.0 format token regexes (D-number, ELI10, Stakes, Pros/cons, Net). Existing RECOMMENDATION check loosened to accept mixed-case "Recommendation:".
 - `test/skill-validation.test.ts`: format assertions updated from "RECOMMENDATION: Choose" to the new Pros/Cons token set.
 - Golden fixtures regenerated: `test/fixtures/golden/claude-ship-SKILL.md`, `codex-ship-SKILL.md`, `factory-ship-SKILL.md`.
-
-#### For contributors
-
-- Outside-voice Codex review (`codex exec` with `model_reasoning_effort="high"`) caught two factual bugs in the original plan: the "31 sites" count (actually 16) and the AUTO_DECIDE contract break on neutral-posture questions. 5 of 8 Codex findings incorporated, 1 rejected (kept defense in depth on the composition reorder), 1 declined (HOLD SCOPE mode lock).
-- Follow-up: true multi-turn cadence eval (3 findings produce 3 distinct AskUserQuestion invocations across turns) requires new harness support for multi-capture. Filed in NOT-in-scope. Current single-capture eval covers format + escape-hatch abuse but not cadence itself.
-- Follow-up: expanded-coverage eval cases for `/ship`, `/office-hours`, `/investigate`, `/qa`, `/review`, `/design-review`, `/document-release`. Touchfiles entries exist; test blocks will land per-skill in follow-up PRs.
-- D-numbering is a model-level instruction, not a runtime counter. `TemplateContext` has no state for it. Drift over long sessions is expected; a registry (deferred to TODOs) is the long-term fix.
 
 ## [1.9.0.0] - 2026-04-23
 
@@ -2294,15 +2060,6 @@ Work on the laptop Monday. Switch to the desktop Tuesday. Skill preamble sees th
 - `scripts/resolvers/preamble.ts` — composition root wires in the new `generateBrainSyncBlock`.
 - `README.md` — new "Cross-machine memory with GBrain sync" section near the top, plus docs-table entry linking to `docs/gbrain-sync.md` and `docs/gbrain-sync-errors.md`.
 
-#### For contributors
-
-- Sync respects `CYBERDART_HOME=/tmp/test-$$` so tests never bleed into real `~/.cyberdart/config.yaml`. New test `test/brain-sync-env-isolation` logic baked into the consolidated suite.
-- The consumer registry lives in `consumers.json` (synced); tokens stay in `cyberdart-config` (local, never synced). Restore prompts for tokens on new machines.
-- Merge drivers require local `git config merge.<name>.driver=...` registration, not just `.gitattributes`. Both `init` and `restore` register them; uninstall clears them.
-- Pre-commit hook is defense-in-depth only. Primary secret scan runs in `cyberdart-brain-sync --once` BEFORE staging.
-- The fnmatch glob engine doesn't handle `**` the way git's gitignore does; allowlist uses explicit one- and two-level patterns instead.
-- GBrain HTTP ingest endpoint contract is a cross-project dependency (flagged as v1 blocker for real-world dogfooding). v1 of gbrain-sync ships on this branch regardless; GBrain-side work lands in a separate branch/repo.
-
 #### Known follow-ups
 
 - `test/brain-sync.test.ts` — 12 of 27 tests pass on first bun-test run; remaining 15 hit bun-test's 5s default timeout (spawnSync-heavy git operations). Behaviors verified via integration smokes during implementation. Test infrastructure needs a 30s per-test timeout wrapper.
@@ -2356,11 +2113,6 @@ Detection dropped by 11pp but nearly all of the lost TPs are cases where Haiku c
 
 - `browse/test/security.test.ts`, `browse/test/security-adversarial.test.ts`, `browse/test/security-adversarial-fixes.test.ts`, `browse/test/security-integration.test.ts` — updated for label-first semantics. 6 new combineVerdict tests: warn-as-soft-signal, block-label-ensemble, three-way-block-with-warn, hallucination-guard (verdict=block at confidence 0.30 → warn-vote), above-floor block (verdict=block at confidence 0.50 → block-vote), backward-compat for missing meta.verdict.
 
-#### For contributors
-
-- The 500-case smoke dataset is in `~/.cyberdart/cache/browsesafe-bench-smoke/test-rows.json` (260 yes / 240 no). To regenerate the fixture after modifying security-layer code, run `CYBERDART_BENCH_ENSEMBLE=1 bun test browse/test/security-bench-ensemble-live.test.ts` (~25 min at concurrency 4, ~$0.30 in Haiku costs).
-- Fixture schema hash covers model, prompt SHA, exemplars SHA, thresholds, combiner rev, and dataset version. Any change to any of those invalidates the fixture and forces a fresh live capture via fail-closed CI.
-
 ## [1.6.3.0] - 2026-04-23
 
 ## **Codex finally explains what it's asking about. No more "ELI10 please" the 10th time in a row.**
@@ -2391,11 +2143,6 @@ All 4 Codex cases pass ELI10 length floor (>400 chars of prose per question). 51
 
 - `scripts/resolvers/preamble/generate-ask-user-format.ts` — step 2 renamed to "Simplify (ELI10, ALWAYS)" with explicit "not optional verbosity, not preamble" framing. Step 3 "Recommend (ALWAYS)" hardened: "Never omit, never collapse into the options list." The tightening applies to all hosts, but Codex felt it most.
 - `model-overlays/gpt.md` — adds a new "AskUserQuestion is NOT preamble" section that instructs the model to back up and emit the full format if it ever finds itself about to skip the ELI10 paragraph or the RECOMMENDATION line.
-
-#### For contributors
-
-- `test/codex-e2e-plan-format.test.ts` — four periodic-tier Codex eval cases mirroring the Claude version. Uses `codex exec` via the existing `test/helpers/codex-session-runner.ts` harness with `sandbox: 'workspace-write'` so the capture file lands inside the tempdir. Assertions: RECOMMENDATION regex, coverage-vs-kind Completeness split, ELI10 length floor (400+ chars).
-- All T2 skills regenerated across all hosts (claude, codex, factory, gbrain, gpt-5.4, hermes, kiro, opencode, openclaw, slate, cursor). Golden fixtures refreshed. `test/gen-skill-docs.test.ts` ELI10 assertion updated to match the new "Simplify (ELI10" heading.
 
 ## [1.6.2.0] - 2026-04-22
 
@@ -2432,12 +2179,6 @@ Source: `test/skill-e2e-plan-format.test.ts`, four cases pinned to `claude-opus-
 - The `AskUserQuestion Format` section in the T2 preamble splits the old run-on paragraph into two ALWAYS-framed rules: step 3 "Recommend (ALWAYS)" and step 4 "Score completeness (when meaningful)". This affects every T2 skill (~15 files regenerated).
 - The `Completeness Principle — Boil the Lake` preamble section now states the coverage-vs-kind distinction explicitly, matching step 4. Without this edit the two preamble locations would disagree — which is how the regression started.
 - Section 0C-bis (approach menu) and Section 0F (mode selection) in `plan-ceo-review/SKILL.md.tmpl` now carry short anchor lines that remind the model which question type applies. `plan-eng-review/SKILL.md.tmpl` gets an equivalent anchor inside the CRITICAL RULE section for per-issue AskUserQuestion decisions.
-
-#### For contributors
-
-- New test file `test/skill-e2e-plan-format.test.ts` captures verbatim AskUserQuestion output from the two plan skills and asserts the coverage-vs-kind format. Instructs the agent to write would-be AskUserQuestion text to `$OUT_FILE` rather than calling an MCP tool (since MCP isn't wired inside `claude -p`).
-- Classified `periodic` tier because behavior depends on Opus 4.7 non-determinism — `gate` tier would flake and block merges.
-- Golden fixtures (`test/fixtures/golden/claude-ship-SKILL.md`, `codex-ship-SKILL.md`, `factory-ship-SKILL.md`) refreshed to reflect the new format rule.
 
 ## [1.6.1.0] - 2026-04-22
 
@@ -2498,12 +2239,6 @@ Regenerating with `--model opus-4-7` now gives you a SKILL.md that carries the 4
 - "No compiled binaries in git" tests in `test/skill-validation.test.ts` rewritten to use `fs.statSync` + mode-100755 filter instead of `xargs -I{} sh -c` per file. 12.7s → 907ms, flaky-at-5s-timeout → green.
 - `test/team-mode.test.ts` setup tests given a 180s budget. `./setup` does a full install + Bun binary build + skill regeneration and takes 60-90s; the 5s default was timing out.
 - Branch rebased on `origin/main` v1.6.0.0 (security wave). VERSION + CHANGELOG follow the branch-scoped discipline in CLAUDE.md: new entry on top of main's 1.6.0.0, no drift.
-
-#### For contributors
-
-- Eval infrastructure now supports model-pinned tests. `test/skill-e2e-opus-47.test.ts:mkEvalRoot(suffix, includeOverlay)` is the pattern: installs per-skill SKILL.md under `.claude/skills/`, writes explicit routing CLAUDE.md, optionally inlines the opus-4-7 overlay for A/B arms. `claude -p` does not auto-load SKILL.md content as system context, so the overlay has to be inlined into CLAUDE.md for the A/B to be observable in that harness.
-- New touchfile entries: `fanout: overlay ON emits >= parallel calls...` and `routing precision: positives route, negatives do not` in `test/helpers/touchfiles.ts`, both `periodic`. Only fire when `model-overlays/`, `scripts/models.ts`, `scripts/resolvers/model-overlay.ts`, `SKILL.md.tmpl`, or `scripts/resolvers/preamble/generate-routing-injection.ts` change.
-- Known gap (P0 TODO in `TODOS.md`): verify the fanout nudge under Claude Code's real harness, not `claude -p`. The claim in the overlay is unmeasured until that runs.
 
 ## [1.6.0.0] - 2026-04-21
 
@@ -2570,13 +2305,6 @@ Run `pair-agent --client test-agent` on your laptop. Share the ngrok URL with so
 - **`design/src/serve.ts` interpolated `url.origin` through `JSON.stringify`.** Defensive escape for origin values in served HTML. Contributed by @theqazi (PR #1073 partial).
 - **`scripts/slop-diff.ts` narrows `shell: true` to Windows only.** Matches the platform-specific need without widening the shell-interpretation surface on POSIX. Contributed by @theqazi (PR #1073 partial).
 
-#### For contributors
-
-- F1 (dual-listener refactor) is bisected as four commits on the branch: rate-limit loosening, new `tunnel-denial-log` module, the server.ts refactor, and the new source-level test suite. Each commit is independently green. Subsequent wave items rebase onto F1 cleanly.
-- Credits: @garagon (critical bug surface in PR #1026 plus SSRF, envelope, DOM-channel coverage, and --from-file PRs), @Hybirdss (PR #1002 concept, superseded by F1 but informed the policy model), @HMAKT99 (PRs #469 and #472 — both ended up already-landed-on-main; credit for surfacing the issues), @theqazi (2 commits from #1073, skills portion deferred pending internal voice review per CLAUDE.md).
-- Codex-reviewed plan stored at `~/.cyberdart/projects/garrytan-cyberdart/ceo-plans/2026-04-21-security-wave-v1.5.2.md`. Eng-review test plan at `~/.cyberdart/projects/garrytan-cyberdart/garrytan-garrytan-sec-wave-eng-review-test-plan-*.md`.
-- Non-goal tracked as #1136: switch cookie-import-browser CDP transport from TCP `--remote-debugging-port` to `--remote-debugging-pipe` so the Windows v20 ABE elevation path is closed. Non-trivial (Playwright doesn't expose the pipe transport; needs a minimal CDP-over-pipe client); intentionally deferred from this wave.
-
 ## [1.5.1.0] - 2026-04-20
 
 ## **Three visible bugs in v1.4.0.0 /make-pdf, all fixed.**
@@ -2624,13 +2352,6 @@ Page numbers are now controlled by one flag from CLI to CSS, with the custom-foo
 
 - `.github/docker/Dockerfile.ci` installs `fonts-liberation` + `fontconfig` explicitly with retries, runs `fc-cache -f`, and verifies `fc-match "Liberation Sans"` in the final build step. Previously relied on Playwright's `install-deps` pulling it in transitively, which could silently regress on upgrade.
 - `SKILL.md.tmpl` documents the Linux font dependency for users who install outside CI/Docker.
-
-#### For contributors
-
-- New helper `decodeTextEntities` in `render.ts` (distinct from existing `decodeTypographicEntities`, which intentionally preserves `&amp;` in pipeline HTML where `&amp;amp;` can be legitimate). Use the new one when extracting plain text destined for `<title>`, cover, or TOC.
-- `PrintCssOptions.pageNumbers` wraps the `@bottom-center` rule in a conditional matching the existing `showConfidential` pattern. Thread `pageNumbers` through `RenderOptions` and forward from `orchestrator.ts` into both `render()` call sites (generate + preview).
-- 17 new tests in `make-pdf/test/render.test.ts`: `printCss` pageNumbers isolation (3), `render()` data flow with footerTemplate (4), parameterized entity contracts across `&`, `<`, `>`, `©`, `—` (5), `<title>` exact single-escape assertion, TOC single-escape, numeric entity decode, smartypants-interacts contract, Liberation Sans body + @page box coverage (2).
-- Known test gaps (small, future PR): hex numeric entity path, amp-last ordering with double-encoded input, SKILL.md Linux note content assertion. Orchestrator → `browseClient.pdf({pageNumbers: false})` and orchestrator → `render()` forwarding are covered transitively via the CSS end-to-end tests, not asserted directly.
 
 ## [1.5.0.0] - 2026-04-20
 
@@ -2711,12 +2432,6 @@ Honest shipping posture: this is meaningfully safer than v1.3.x, not bulletproof
 * `CYBERDART_SECURITY_OFF=1` — emergency kill switch (canary still injected, ML skipped)
 * `CYBERDART_SECURITY_ENSEMBLE=deberta` — opt-in 721MB DeBERTa-v3 ensemble classifier for 2-of-3 agreement
 
-### For contributors
-
-Supabase migration `004_attack_telemetry.sql` adds five nullable columns to `telemetry_events` (`security_url_domain`, `security_payload_hash`, `security_confidence`, `security_layer`, `security_verdict`) plus two partial indices for dashboard aggregation. `community-pulse` edge function aggregates the security section. Run `cd supabase && ./verify-rls.sh` and deploy via your normal Supabase deploy flow.
-
----
-
 ## [1.4.0.0] - 2026-04-20
 
 ## **Turn any markdown file into a PDF that looks finished.**
@@ -2740,14 +2455,6 @@ Headless Chromium emits per-glyph `Tj` operators for webfonts with non-standard 
 ### Under the hood
 
 make-pdf shells out to `browse` for Chromium lifecycle. No second Playwright install, no second 58MB binary, no second codesigning dance. `$B pdf` grew from "take a screenshot as A4" into a real PDF engine with `--format`/`--width`/`--height`, `--margins`, `--header-template`/`--footer-template`, `--page-numbers`, `--tagged`, `--outline`, `--toc`, `--tab-id`, and `--from-file` for large payloads (Windows argv caps). `$B load-html` and `$B js` got `--tab-id` too, so parallel `$P generate` calls never race on the active tab. `$B newtab --json` returns structured output so make-pdf can parse the tab ID without regex-matching log strings.
-
-### For contributors
-
-- Skill file: `make-pdf/SKILL.md.tmpl`. Binary source: `make-pdf/src/`. Test fixtures: `make-pdf/test/fixtures/`. CI workflow: `.github/workflows/make-pdf-gate.yml`.
-- New resolver `{{MAKE_PDF_SETUP}}` emits the `$P=` alias with the same discovery order as `$B`: `MAKE_PDF_BIN` env override, then local skill root, then global install, then PATH.
-- Combined-features copy-paste gate is the P0 test in `make-pdf/test/e2e/combined-gate.test.ts`. Per-feature gates are P1 diagnostics.
-- Phase 4 deferrals: vendored Paged.js for accurate TOC page numbers, vendored highlight.js for syntax highlighting, drop caps, pull quotes, CMYK safe conversion, two-column layout.
-- Preamble bash now emits `_EXPLAIN_LEVEL` and `_QUESTION_TUNING` so downstream skills can read them at runtime. Golden-file fixtures updated to match.
 
 ## [1.3.0.0] - 2026-04-19
 
@@ -2820,16 +2527,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **`--models` list deduplication.** Passing `--models claude,claude,gpt` no longer runs Claude twice and double-bills. The flag parser dedupes via Set while preserving first-occurrence order.
 - **CI Docker build on Ubicloud runners.** Two fixes merged during the branch's life: (1) switched the Node.js install from NodeSource apt to direct download of the official nodejs.org tarball, since Ubicloud runners regularly couldn't reach archive.ubuntu.com / security.ubuntu.com; (2) added `xz-utils` to the system deps so `tar -xJ` on the `.tar.xz` tarball actually works.
 
-### For contributors
-
-- **Test infrastructure for multi-provider benchmarking.** `test/helpers/providers/{types,claude,gpt,gemini}.ts` defines a uniform `ProviderAdapter` interface and three adapters wrapping the existing CLI runners. `test/helpers/pricing.ts` has per-model cost tables (update quarterly). `test/helpers/tool-map.ts` declares which tools each provider's CLI exposes — benchmarks that need Edit/Glob/Grep correctly skip Gemini and report `unsupported_tool`.
-- **Model taxonomy in neutral `scripts/models.ts`.** Avoids an import cycle through `hosts/index.ts` that would have happened if `Model` lived in `scripts/resolvers/types.ts`. `resolveModel()` handles family heuristics: `gpt-5.4-mini` → `gpt-5.4`, `o3` → `o-series`, `claude-opus-4-7` → `claude`.
-- **`scripts/resolvers/preamble/`** — 18 single-purpose generators, 16-160 lines each. The composition root in `scripts/resolvers/preamble.ts` imports them and wires them into the tier-gated section list.
-- **Plan and reviews persisted.** Implementation followed `~/.claude/plans/declarative-riding-cook.md` which went through CEO review (SCOPE EXPANSION, 6 expansions accepted), DX review (POLISH, 5 gaps fixed), Eng review (4 architecture issues), and Codex review (11 brutal findings, all integrated and 2 prior decisions reversed).
-- **Mode-posture energy in Writing Style rules 2-4** (ported from main's v1.1.2.0). Rule 2 and rule 4 now cover three framings — pain reduction, capability unlocked, forcing-question pressure — so expansion, builder, and forcing-question skills keep their edge instead of collapsing into diagnostic-pain framing. Rule 3 adds an explicit exception for stacked forcing questions. Came in via the merge; sits on top of the submodule refactor already shipped in v1.3.
-- **Lite E2E coverage for v1.3 primitives.** Three new test files fill the real coverage gaps flagged in initial review: `test/taste-engine.test.ts` (24 tests — schema shape, Laplace-smoothed confidence, 5%/week decay clamped at 0, multi-dimension extraction, case-insensitive first-casing-wins policy, session cap via seed-then-one-call, legacy profile migration, taste-drift conflict warning, malformed-JSON recovery), `test/benchmark-cli.test.ts` (12 tests — CLI flag wiring, provider defaults, unknown-provider WARN path, NOT-READY branch regression catcher that strips auth env vars), `test/skill-e2e-benchmark-providers.test.ts` (8 periodic-tier live-API tests — trivial "echo ok" prompt through claude/codex/gemini adapters, assertions on parsed output + tokens + cost + timeout error codes + Promise.allSettled parallel isolation).
-- **Ship golden fixtures for three hosts.** `test/fixtures/golden/{claude,codex,factory}-ship-SKILL.md` — byte-exact regression pins on the `/ship` generated output. The adversarial subagent pass during /review caught two real bugs before merge: Geist/GEIST casing policy in the taste engine was unpinned, and the live-E2E workdir was created at module load and never cleaned up.
-
 ## [1.1.3.0] - 2026-04-19
 
 ### Changed
@@ -2843,17 +2540,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 ### Fixed
 - **Empty-set bug on macOS.** If you ran `/checkpoint resume` (now `/context-restore`) with zero saved files, `find ... | xargs ls -1t` would fall back to listing your current directory. Confusing output, no clean "no saved contexts yet" message. Replaced with `find | sort -r | head` so empty input stays empty.
 
-### For contributors
-- New `cyberdart-upgrade/migrations/v1.1.3.0.sh` removes the stale on-disk `/checkpoint` install so Claude Code's native `/rewind` alias is no longer shadowed. Ownership-guarded across three install shapes (directory symlink into cyberdart, directory with SKILL.md symlinked into cyberdart, anything else). User-owned `/checkpoint` skills preserved with a notice. Migration hardened after adversarial review: explicit `HOME` unset/empty guard, `realpath` with python3 fallback, `rm --` flag, macOS sidecar handling.
-- `test/migration-checkpoint-ownership.test.ts` ships 7 scenarios covering all 3 install shapes + idempotency + no-op-when-cyberdart-not-installed + SKILL.md-symlink-outside-cyberdart. Free tier, ~85ms.
-- Split `checkpoint-save-resume` E2E into `context-save-writes-file` and `context-restore-loads-latest`. The latter seeds two files with scrambled mtimes so the "filename-prefix, not mtime" guarantee is locked in.
-- `context-save` now sanitizes the title in bash (allowlist `[a-z0-9.-]`, cap 60 chars) instead of trusting LLM-side slugification, and appends a random suffix on same-second collisions to enforce the append-only contract.
-- `context-restore` caps its filename listing at 20 most-recent entries so users with 10k+ saved files don't blow the context window.
-- `test/skill-e2e-autoplan-dual-voice.test.ts` was shipped broken on main (wrong `runSkillTest` option names, wrong result-field access, wrong helper signatures, missing Agent/Skill tools). Fixed end-to-end: 1/1 pass on first attempt, $0.68, 211s. Voice-detection regexes now match JSON-shaped tool_use entries and phase-completion markers, not bare prompt-text mentions.
-- Added 8 live-fire E2E tests in `test/skill-e2e-context-skills.test.ts` that spawn `claude -p` with the Skill tool enabled and assert on the routing path, not hand-fed section prompts. Covers: save routing, save-then-restore round-trip, fragment-match restore, empty-state graceful message, `/context-restore list` delegation to `/context-save list`, legacy file compat, branch-filter default, and `--all` flag. 21 additional free-tier hardening tests in `test/context-save-hardening.test.ts` pin the title-sanitizer allowlist, collision-safe filenames, empty-set fallback, and migration HOME guard.
-- New `test/skill-collision-sentinel.test.ts` — insurance policy against upstream slash-command shadowing. Enumerates every cyberdart skill name and cross-checks against a per-host list of known built-in slash commands (23 Claude Code built-ins tracked so far). When a host ships a new built-in, add it to `KNOWN_BUILTINS` and the test flags the collision before users find it. `/review` collision with Claude Code's `/review` documented in `KNOWN_COLLISIONS_TOLERATED` with a written justification; the exception list is validated against live skills on every run so stale entries fail loud.
-- `runSkillTest` in `test/helpers/session-runner.ts` now accepts an `env:` option for per-test env overrides. Prevents tests from having to stuff `CYBERDART_HOME=...` into the prompt, which was causing the agent to bypass the Skill tool. All 8 new E2E tests use `env: { CYBERDART_HOME: cyberdartHome }`.
-
 ## [1.1.2.0] - 2026-04-19
 
 ### Fixed
@@ -2863,24 +2549,11 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 ### Added
 - **Gate-tier eval tests catch mode-posture regressions on every PR.** Three new E2E tests fire when the shared preamble, the plan-ceo-review template, or the office-hours template change. A Sonnet judge scores each mode on two axes: felt-experience vs decision-preservation for expansion, stacked-pressure vs domain-matched-consequence for forcing, unexpected-combinations vs excitement-over-optimization for builder. The original V1 regression shipped because nothing caught it. This closes that gap.
 
-### For contributors
-- Writing Style rule 2 and rule 4 in `scripts/resolvers/preamble.ts` each present three paired framing examples instead of one. Rule 3 adds an explicit exception for stacked forcing questions.
-- `plan-ceo-review/SKILL.md.tmpl` gets a new `### 0D-prelude. Expansion Framing` subsection shared by SCOPE EXPANSION and SELECTIVE EXPANSION.
-- `office-hours/SKILL.md.tmpl` gets inline forcing exemplar (Q3) and wild exemplar (builder operating principles). Anchored by stable heading, not line numbers.
-- New `judgePosture(mode, text)` helper in `test/helpers/llm-judge.ts` (Sonnet judge, dual-axis rubric per mode).
-- Three test fixtures in `test/fixtures/mode-posture/` — expansion plan, forcing pitch, builder idea.
-- Three entries registered in `E2E_TOUCHFILES` + `E2E_TIERS`: `plan-ceo-review-expansion-energy`, `office-hours-forcing-energy`, `office-hours-builder-wildness` — all `gate` tier.
-- Review history on this branch: CEO review (HOLD SCOPE) + Codex plan review (30 findings, drove approach pivot from "add new rule #5 taxonomy" to "rewrite rule 2-4 examples"). One eng review pass caught the test-infrastructure target (originally pointed at `test/skill-llm-eval.test.ts`, which does static analysis — actually needs E2E).
-
 ## [1.1.1.0] - 2026-04-18
 
 ### Fixed
 - **`/ship` no longer silently lets `VERSION` and `package.json` drift.** Before this fix, `/ship`'s Step 12 read and bumped only the `VERSION` file. Any downstream consumer that reads `package.json` (registry UIs, `bun pm view`, `npm publish`, future helpers) would see a stale semver, and because the idempotency check keyed on `VERSION` alone, the next `/ship` run couldn't detect it had drifted. Now Step 12 classifies into four states — FRESH, ALREADY_BUMPED, DRIFT_STALE_PKG, DRIFT_UNEXPECTED — detects drift in every direction, repairs it via a sync-only path that can't double-bump, and halts loudly when `VERSION` and `package.json` disagree in an ambiguous way.
 - **Hardened against malformed version strings.** `NEW_VERSION` is validated against the 4-digit semver pattern before any write, and the drift-repair path applies the same check to `VERSION` contents before propagating them into `package.json`. Trailing carriage returns and whitespace are stripped from both file reads. If `package.json` is invalid JSON, `/ship` stops loudly instead of silently rewriting a corrupted file.
-
-### For contributors
-- New test file at `test/ship-version-sync.test.ts` — 14 cases covering every branch of the new Step 12 logic, including the critical no-double-bump path (drift-repair must never call the normal bump action), trailing-CR regression, and invalid-semver repair rejection.
-- Review history on this fix: one round of `/plan-eng-review`, one round of `/codex` plan review (found a double-bump bug in the original design), one round of Claude adversarial subagent (found CRLF handling gap and unvalidated `REPAIR_VERSION`). All surfaced issues applied in-branch.
 
 ## [1.1.0.0] - 2026-04-18
 
@@ -2900,15 +2573,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **Audit log now records the raw alias input.** When you type `setcontent`, the audit entry shows `cmd: load-html, aliasOf: setcontent` so the forensic trail reflects what the agent actually sent, not just the canonical form.
 - **`load-html` content correctly clears on every real navigation** — link clicks, form submits, and JavaScript redirects now invalidate the replay metadata just like explicit `goto`/`back`/`forward`/`reload` do. Previously a later `viewport --scale` after a click could resurrect the original `load-html` content (silent data corruption). Also fixes SPA fixture URLs: `goto file:///tmp/app.html?route=home#login` preserves the query string and fragment through normalization.
 
-### For contributors
-- `validateNavigationUrl()` now returns the normalized URL (previously void). All four callers — goto, diff, newTab, restoreState — updated to consume the return value so smart-parsing takes effect at every navigation site.
-- New `normalizeFileUrl()` helper uses `fileURLToPath()` + `pathToFileURL()` from `node:url` — never string-concat — so URL escapes like `%20` decode correctly and encoded-slash traversal (`%2F..%2F`) is rejected by Node outright.
-- New `TabSession.loadedHtml` field + `setTabContent()` / `getLoadedHtml()` / `clearLoadedHtml()` methods. ASCII lifecycle diagram in the source. The `clear` call happens BEFORE navigation starts (not after) so a goto that times out post-commit doesn't leave stale metadata that could resurrect on a later context recreation.
-- `BrowserManager.setDeviceScaleFactor(scale, w, h)` is atomic: validates input, stores new values, calls `recreateContext()`, rolls back the fields on failure. `currentViewport` tracking means recreateContext preserves your size instead of hardcoding 1280×720.
-- `COMMAND_ALIASES` + `canonicalizeCommand()` + `buildUnknownCommandError()` + `NEW_IN_VERSION` are exported from `browse/src/commands.ts`. Single source of truth — both the server dispatcher and `chain` prevalidation import from the same place. Chain uses `{ rawName, name }` shape per step so audit logs preserve what the user typed while dispatch uses the canonical name.
-- `load-html` is registered in `SCOPE_WRITE` in `browse/src/token-registry.ts`.
-- Review history for the curious: 3 Codex consults (20 + 10 + 6 gaps), DX review (TTHW ~4min → <60s, Champion tier), 2 Eng review passes. Third Codex pass caught the 4-caller bug for `validateNavigationUrl` that the eng passes missed. All findings folded into the plan.
-
 ## [1.0.0.0] - 2026-04-18
 
 ### Added
@@ -2923,16 +2587,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **README hero reframed.** No more "10K-20K lines per day" claim. Focuses on products shipped + features + the pro-rata multiple on logical code change, which is the honest metric now that AI writes most of the code. The point isn't who typed it, it's what shipped.
 - **Hiring callout reframed.** Replaced "ship 10K+ LOC/day" with "ship real products at AI-coding speed."
 
-### For contributors
-- New `scripts/resolvers/preamble.ts` Writing Style section, injected for tier ≥ 2 skills. Composes with the existing AskUserQuestion Format section (Format = how the question is structured, Style = the prose quality of the content inside). Jargon list is baked into generated SKILL.md prose at `gen-skill-docs` time — zero runtime cost, edit the JSON and regenerate.
-- New `bin/cyberdart-config` validation for `explain_level` values. Unknown values print a warning and default to `default`. Annotated header documents the new key.
-- New one-shot upgrade migration at `cyberdart-upgrade/migrations/v1.0.0.0.sh`, matching existing `v0.15.2.0.sh` / `v0.16.2.0.sh` pattern. Flag-file gated.
-- New throughput pipeline: `scripts/garry-output-comparison.ts` (scc preflight + author-scoped SLOC across 2013 + 2026), `scripts/update-readme-throughput.ts` (reads the JSON, replaces `<!-- CYBERDART-THROUGHPUT-PLACEHOLDER -->` anchor), `scripts/setup-scc.sh` (OS-detecting installer invoked only when running the throughput script — scc is not a package.json dependency).
-- Two-string marker pattern in README to prevent the pipeline from destroying its own update path: `CYBERDART-THROUGHPUT-PLACEHOLDER` (stable anchor) vs `CYBERDART-THROUGHPUT-PENDING` (explicit missing-build marker CI rejects).
-- V0 dormancy negative tests — the 5D psychographic dimensions (scope_appetite, risk_tolerance, detail_preference, autonomy, architecture_care) and 8 archetype names (Cathedral Builder, Ship-It Pragmatist, Deep Craft, Taste Maker, Solo Operator, Consultant, Wedge Hunter, Builder-Coach) must not appear in default-mode skill output. Keeps the V0 machinery dormant until V2.
-- **Pacing improvements ship in V1.1.** The scope originally considered (review ranking, Silent Decisions block, max-3-per-phase cap, flip mechanism) was extracted to `docs/designs/PACING_UPDATES_V0.md` after three engineering-review passes revealed structural gaps that couldn't be closed with plan-text editing. V1.1 picks it up with real V1 baseline data.
-- Design doc: `docs/designs/PLAN_TUNING_V1.md`. Full review history: CEO + Codex (×2 passes, 45 findings integrated) + DX (TRIAGE) + Eng (×3 passes — last pass drove the scope reduction).
-
 ## [0.19.0.0] - 2026-04-17
 
 ### Added
@@ -2944,15 +2598,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **Typed question registry with CI enforcement.** 53 recurring AskUserQuestion categories across 15 skills are now declared in `scripts/question-registry.ts` with stable IDs, categories, door types (one-way vs two-way), and options. A CI test asserts the schema stays valid. Safety-critical questions (destructive ops, architecture forks) are classified `one-way` at the declaration site — never inferred from prose summaries.
 - **Unified developer profile.** The `/office-hours` skill's existing builder-profile.jsonl (sessions, signals, resources, topics) is folded into a single `~/.cyberdart/developer-profile.json` on first use. Migration is atomic, idempotent, and archives the source file — rerun it safely. Legacy `cyberdart-builder-profile` is a thin shim that delegates to the new binary.
 
-### For contributors
-- New `docs/designs/PLAN_TUNING_V0.md` captures the full design journey: every decision with pros/cons, what was deferred to v2 with explicit acceptance criteria, what was rejected after Codex review (substrate-as-prompt-convention, ±0.2 clamp, preamble LANDED detection, single event-schema), and how the final shape came together. Read this before working on v2 to understand why the constraints exist.
-- Three new binaries: `bin/cyberdart-question-log` (validated append to question-log.jsonl), `bin/cyberdart-question-preference` (explicit preference store with user-origin gate), `bin/cyberdart-developer-profile` (supersedes cyberdart-builder-profile; supports --read, --migrate, --derive, --profile, --gap, --trace, --check-mismatch, --vibe).
-- Three new preamble resolvers in `scripts/resolvers/question-tuning.ts`: question preference check (before each AskUserQuestion), question log (after), inline tune feedback with user-origin gate instructions. Consolidated into one compact `generateQuestionTuning` section for tier >= 2 skills to minimize token overhead.
-- Hand-crafted psychographic signal map (`scripts/psychographic-signals.ts`) with version hash so cached profiles recompute automatically when the map changes between cyberdart versions. 9 signal keys covering scope-appetite, architecture-care, test-discipline, code-quality-care, detail-preference, design-care, devex-care, distribution-care, session-mode.
-- Keyword-fallback one-way-door classifier (`scripts/one-way-doors.ts`) — secondary safety layer for ad-hoc question IDs that don't appear in the registry. Primary safety is the registry declaration.
-- 118 new tests across 4 test files: `test/plan-tune.test.ts` (47 tests — schema, helpers, safety, classifier, signal map, archetypes, preamble injection, end-to-end pipeline), `test/cyberdart-question-log.test.ts` (21 tests — valid payloads, rejected payloads, injection defense), `test/cyberdart-question-preference.test.ts` (31 tests — check/write/read/clear/stats + user-origin gate + schema validation), `test/cyberdart-developer-profile.test.ts` (25 tests — read/migrate/derive/trace/gap/vibe/check-mismatch). Gate-tier E2E test `skill-e2e-plan-tune.test.ts` registered (runs on `bun run test:evals`).
-- Scope rollback driven by outside-voice review. The initial CEO EXPANSION plan bundled psychographic auto-decide + blind-spot coach + LANDED celebration + full substrate wiring. Codex's 20-point critique caught that without a typed question registry, "substrate" was marketing; E1/E4/E6 formed a logical contradiction; profile poisoning was unaddressed; LANDED in the preamble injected side effects into every skill's hot path. Accepted the rollback: v1 ships the schema + observation layer, v2 adds behavior adaptation only after the foundation proves durable. All six expansions are tracked as P0 TODOs with explicit acceptance criteria.
-
 ## [0.18.4.0] - 2026-04-18
 
 ### Fixed
@@ -2962,13 +2607,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **`/codex` and `/autoplan` no longer sit at 0% CPU forever if the model API stalls.** Every `codex exec` / `codex review` now runs under a 10-minute timeout wrapper with a `gtimeout → timeout → unwrapped` fallback chain, so you get a clear "Codex stalled past 10 minutes. Common causes: model API stall, long prompt, network issue. Try re-running." message instead of an infinite wait. `./setup` auto-installs `coreutils` on macOS so `gtimeout` is available (skip with `CYBERDART_SKIP_COREUTILS=1` for CI / locked machines).
 - **`/codex` Challenge mode now surfaces auth errors instead of silently dropping them.** Challenge mode was piping stderr to `/dev/null`, which masked any auth failures in the middle of a run. Now it captures stderr to a temp file and checks for `auth|login|unauthorized` patterns. If Codex errors mid-run, you see it.
 - **Plan reviews no longer quietly bias toward minimal-diff recommendations.** `/plan-ceo-review` and `/plan-eng-review` used to list "minimal diff" as an engineering preference without a counterbalancing "rewrite is fine when warranted" note. Reviewers picked up on that and rejected rewrites that should've been approved. The preference is now framed as "right-sized diff" with explicit permission to recommend a rewrite when the existing foundation is broken. Implementation alternatives in CEO review also got an equal-weight clarification: don't default to minimal viable just because it's smaller.
-
-### For contributors
-- New `bin/cyberdart-codex-probe` consolidates the auth probe, version check, timeout wrapper, and telemetry logger into one bash helper that `/codex` and `/autoplan` both source. When a second outside-voice backend lands (Gemini CLI), this is the file to extend.
-- New `test/codex-hardening.test.ts` ships 25 deterministic unit tests for the probe (8 auth probe combinations, 10 version regex cases including `0.120.10` false-positive guards, 4 timeout wrapper + namespace hygiene checks, 3 telemetry payload schema checks confirming no env values leak into events). Free tier, <5s runtime.
-- New `test/skill-e2e-autoplan-dual-voice.test.ts` (periodic tier) gates the `/autoplan` dual-voice path. Asserts both Claude subagent and Codex voices produce output in Phase 1, OR that `[codex-unavailable]` is logged when Codex is absent. Periodic ~= $1/run, not a gate.
-- Codex failure telemetry events (`codex_timeout`, `codex_auth_failed`, `codex_cli_missing`, `codex_version_warning`) now land in `~/.cyberdart/analytics/skill-usage.jsonl` behind the existing user opt-in. Reliability regressions are visible at the user-base scale.
-- Codex timeouts (`exit 124`) now auto-log operational learnings via `cyberdart-learnings-log`. Future `/investigate` sessions on the same skill/branch surface prior hang patterns automatically.
 
 ## [0.18.3.0] - 2026-04-17
 
@@ -2982,12 +2620,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **Cookie picker stops stranding the UI.** If the launching CLI exited mid-import, the picker page would flash `Failed to fetch` because the server had shut down under it. The browse server now stays alive while any picker code or session is live.
 - **OpenClaw skills load cleanly in Codex.** The 4 hand-authored ClawHub skills (ceo-review, investigate, office-hours, retro) had frontmatter with unquoted colons and non-standard `version`/`metadata` fields that stricter parsers rejected. Now they load without errors on Codex CLI and render correctly on GitHub.
 
-### For contributors
-- Community wave lands 6 PRs: #993 (byliu-labs), #994 (joelgreen), #996 (voidborne-d), #864 (cathrynlavery), #982 (breakneo), #892 (msr-hickory).
-- SIGTERM handling is now mode-aware. In normal mode the server ignores SIGTERM so Claude Code's sandbox doesn't tear it down mid-session. In headed mode (`/open-cyberdart-browser`) and tunnel mode (`/pair-agent`) SIGTERM still triggers a clean shutdown. those modes skip idle cleanup, so without the mode gate orphan daemons would accumulate forever. Note that v0.18.1.0 also disables the parent-PID watchdog when `BROWSE_HEADED=1`, so headed mode is doubly protected. Inline comments document the resolution order.
-- Windows v20 App-Bound Encryption CDP fallback now logs the Chrome version on entry and has an inline comment documenting the debug-port security posture (127.0.0.1-only, random port in [9222, 9321] for collision avoidance, always killed in finally).
-- New regression test `test/openclaw-native-skills.test.ts` pins OpenClaw skill frontmatter to `name` + `description` only. catches version/metadata drift at PR time.
-
 ## [0.18.2.0] - 2026-04-17
 
 ### Fixed
@@ -2998,10 +2630,6 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **`/ship` step numbers are clean integers 1-20 instead of fractional (`3.47`, `8.5`, `8.75`).** Fractional step numbers signaled "optional appendix" to the model and contributed to late-stage steps getting skipped. Clean integers feel mandatory. Resolver sub-steps that are genuinely nested (Plan Verification 8.1, Scope Drift 8.2, Review Army 9.1/9.2, Cross-review dedup 9.3) are preserved.
 - **`/ship` now prints "You are NOT done" after push.** Breaks the natural stopping point where the model was treating a pushed branch as mission-accomplished and skipping doc sync + PR creation.
 
-### For contributors
-- New regression guards in `test/skill-validation.test.ts` prevent drift back to fractional step numbers and catch cross-contamination between `/ship` and `/review` resolver conditionals.
-- Ship template restructure: old Step 8.5 (post-PR doc sync with `cat` delegation) replaced by new Step 18 (pre-PR subagent dispatch that invokes full `/document-release` skill with its CHANGELOG clobber protections, doc exclusions, risky-change gates, and race-safe PR body editing). Codex caught that the original plan's reimplementation dropped those protections; this version reuses the real `/document-release`.
-
 ## [0.18.1.0] - 2026-04-16
 
 ### Fixed
@@ -3010,22 +2638,12 @@ If you're a solo builder or founder shipping a product one sprint at a time, `/d
 - **CI/Claude Code Bash calls can now share a persistent headless server.** The headless spawn path used to hardcode the CLI's own PID as the watchdog target, ignoring `BROWSE_PARENT_PID=0` even if you set it in your environment. Now `BROWSE_PARENT_PID=0 $B goto https://...` keeps the server alive across short-lived CLI invocations, which is what multi-step workflows (CI matrices, Claude Code's Bash tool, cookie picker flows) actually want.
 - **`SIGTERM` / `SIGINT` shutdown now exits with code 0 instead of 1.** Regression caught during /ship's adversarial review: when `shutdown()` started accepting an `exitCode` argument, Node's signal listeners silently passed the signal name (`'SIGTERM'`) as the exit code, which got coerced to `NaN` and used `1`. Wrapped the listeners so they call `shutdown()` with no args. Your `Ctrl+C` now exits clean again.
 
-### For contributors
-- `test/relink.test.ts` no longer flakes under parallel test load. The 23 tests in that file each shell out to `cyberdart-config` + `cyberdart-relink` (bash subprocess work), and under `bun test` with other suites running, each test drifted ~200ms past Bun's 5s default. Wrapped `test` to default the per-test timeout to 15s with `Object.assign` preserving `.only`/`.skip`/`.each` sub-APIs.
-- `BrowserManager` gained an `onDisconnect` callback (wired by `server.ts` to `shutdown(2)`), replacing the direct `process.exit(2)` in the disconnect handler. The callback is wrapped with try/catch + Promise rejection handling so a rejecting cleanup path still exits the process instead of leaving a live server attached to a dead browser.
-- `shutdown()` now accepts an optional `exitCode: number = 0` parameter, used by the disconnect path (exit 2) and the signal path (default 0). Same cleanup code, two call sites, distinct exit codes.
-- `BROWSE_PARENT_PID` parsing in `cli.ts` now matches `server.ts`: `parseInt` instead of strict string equality, so `BROWSE_PARENT_PID=0\n` (common from shell `export`) is honored.
-
 ## [0.18.0.1] - 2026-04-16
 
 ### Fixed
 - **Windows install no longer fails with a build error.** If you installed cyberdart on Windows (or a fresh Linux box), `./setup` was dying with `cannot write multiple output files without an output directory`. The Windows-compat Node server bundle now builds cleanly, so `/browse`, `/canary`, `/pair-agent`, `/open-cyberdart-browser`, `/setup-browser-cookies`, and `/design-review` all work on Windows again. If you were stuck on cyberdart v0.15.11-era features without knowing it, this is why. Thanks to @tomasmontbrun-hash (#1019) and @scarson (#1013) for independently tracking this down, and to the issue reporters on #1010 and #960.
 - **CI stops lying about green builds.** The `build` and `test` scripts in `package.json` had a shell precedence trap where a trailing `|| true` swallowed failures from the *entire* command chain, not just the cleanup step it was meant for. That's how the Windows build bug above shipped in the first place. CI ran the build, the build failed, and CI reported success anyway. Now build and test failures actually fail. Silent CI is the worst kind of CI.
 - **`/pair-agent` on Windows surfaces install problems at install time, not tunnel time.** `./setup` now verifies Node can load `@ngrok/ngrok` on Windows, just like it already did for Playwright. If the native binary didn't install, you find out now instead of the first time you try to pair an agent.
-
-### For contributors
-- New `browse/test/build.test.ts` validates `server-node.mjs` is well-formed ES module syntax and that `@ngrok/ngrok` was actually externalized (not inlined). Gracefully skips when no prior build has run.
-- Added a policy comment in `browse/scripts/build-node-server.sh` explaining when and why to externalize a dependency. If you add a dep with a native addon or a dynamic `await import()`, the comment tells you where to plug it in.
 
 ## [0.18.0.0] - 2026-04-15
 
@@ -3179,12 +2797,6 @@ Community security wave: 8 PRs from 4 contributors, every fix credited as co-aut
 - Session ID validated before use in file paths (prevents path traversal via crafted active.json).
 - SIGTERM/SIGKILL escalation in sidebar agent timeout handler (was bare `kill()`).
 
-### For contributors
-- Queue files created with 0o700/0o600 permissions (server, CLI, sidebar-agent).
-- `escapeRegExp` utility exported from meta-commands.
-- State load filters cookies from localhost, .internal, and metadata domains.
-- Telemetry sync logs upsert errors from installation tracking.
-
 ## [0.15.14.0] - 2026-04-05
 
 ### Fixed
@@ -3258,11 +2870,6 @@ When you share your browser with another AI agent via `/pair-agent`, that agent 
 ### Fixed
 - Review Army diff size heuristic now counts insertions + deletions (was insertions-only, which missed deletion-heavy refactors).
 
-### For contributors
-- Extracted cross-review dedup to shared `{{CROSS_REVIEW_DEDUP}}` resolver (DRY between `/review` and `/ship`).
-- Review Army step numbers adapt per-skill via `ctx.skillName` (ship: 3.55/3.56, review: 4.5/4.6), including prose references.
-- Added 3 regression guard tests for new ship template content.
-
 ## [0.15.10.0] - 2026-04-05. Native OpenClaw Skills + ClawHub Publishing
 
 Four methodology skills you can install directly in your OpenClaw agent via ClawHub, no Claude Code session needed. Your agent runs them conversationally via Telegram.
@@ -3307,10 +2914,6 @@ Closed 12 redundant community PRs, merged 2 ready PRs (#798, #776), and expanded
 ### Added
 
 - **>128KB regression test for Codex session discovery.** Documents the current buffer limitation so future Codex versions with larger session_meta will surface cleanly instead of silently breaking.
-
-### For contributors
-
-- Closed 12 redundant community PRs (6 Gonzih security fixes shipped in v0.15.7.0, 6 stedfn duplicates). Kept #752 open (symlink gap in design serve). Thank you @Gonzih, @stedfn, @itstimwhite for the contributions.
 
 ## [0.15.8.0] - 2026-04-04. Smarter Reviews
 
@@ -3514,13 +3117,6 @@ Re-running `/ship` after a failed push or PR creation no longer double-bumps you
 ### Added
 
 - **`bin/cyberdart-patch-names` shared helper.** DRY extraction of the name-patching logic used by both `setup` and `cyberdart-relink`. Handles all edge cases (no frontmatter, already-prefixed, inherently-prefixed dirs) with portable `mktemp + mv` sed.
-
-### For contributors
-
-- 4 unit tests for name: patching in `relink.test.ts`
-- 2 tests for gen-skill-docs prefix warning
-- 1 E2E test for ship idempotency (periodic tier)
-- Updated `setupMockInstall` to write SKILL.md with proper frontmatter
 
 ## [0.14.4.0] - 2026-03-31. Review Army: Parallel Specialist Reviewers
 
@@ -3827,14 +3423,6 @@ cyberdart can generate real UI mockups. Not ASCII art, not text descriptions of 
 - **/design-consultation** uses `{{DESIGN_SHOTGUN_LOOP}}` for Phase 5 AI mockup review.
 - **Comparison board post-submit lifecycle.** After submitting, all inputs are disabled and a "Return to your coding agent" message appears. After regenerating, a spinner shows with auto-refresh when new designs are ready. If the server is gone, a copyable JSON fallback appears.
 
-### For contributors
-
-- Design binary source: `design/src/` (16 files, ~2500 lines TypeScript)
-- New files: `serve.ts` (stateful HTTP server), `gallery.ts` (timeline generation)
-- Tests: `design/test/serve.test.ts` (11 tests), `design/test/gallery.test.ts` (7 tests)
-- Full design doc: `docs/designs/DESIGN_TOOLS_V1.md`
-- Template resolvers: `{{DESIGN_SETUP}}` (binary discovery), `{{DESIGN_SHOTGUN_LOOP}}` (shared comparison board loop for /design-shotgun, /plan-design-review, /design-consultation)
-
 ## [0.12.12.0] - 2026-03-27. Security Audit Compliance
 
 Fixes 20 Socket alerts and 3 Snyk findings from the skills.sh security audit. Your skills are now cleaner, your telemetry is transparent, and 2,000 lines of dead code are gone.
@@ -3851,10 +3439,6 @@ Fixes 20 Socket alerts and 3 Snyk findings from the skills.sh security audit. Yo
 
 - **2,017 lines of dead code from gen-skill-docs.ts.** Duplicate resolver functions that were superseded by `scripts/resolvers/*.ts`. The RESOLVERS map is now the single source of truth with no shadow copies.
 
-### For contributors
-
-- New `test:audit` script runs 6 regression tests that enforce all audit fixes stay in place.
-
 ## [0.12.11.0] - 2026-03-27. Skill Prefix is Now Your Choice
 
 You can now choose how cyberdart skills appear: short names (`/qa`, `/ship`, `/review`) or namespaced (`/cyberdart-qa`, `/cyberdart-ship`). Setup asks on first run, remembers your preference, and switching is one command.
@@ -3870,10 +3454,6 @@ You can now choose how cyberdart skills appear: short names (`/qa`, `/ship`, `/r
 
 - **`cyberdart-config` works on Linux.** Replaced BSD-only `sed -i ''` with portable `mktemp`+`mv`. Config writes now work on GNU/Linux and WSL.
 - **Dead welcome message.** The "Welcome!" message on first install was never shown because `~/.cyberdart/` was created earlier in setup. Fixed with a `.welcome-seen` sentinel file.
-
-### For contributors
-
-- 8 new structural tests for the prefix config system (223 total in gen-skill-docs).
 
 ## [0.12.10.0] - 2026-03-27. Codex Filesystem Boundary
 
@@ -3952,10 +3532,6 @@ Seven community contributions merged, reviewed, and tested. Plus security harden
 - **Update checker fall-through.** After upgrading, the checker now also checks for newer remote versions instead of stopping.
 - **Flaky E2E tests stabilized.** `browse-basic`, `ship-base-branch`, and `review-dashboard-via` tests now pass reliably by extracting only relevant SKILL.md sections instead of copying full 1900-line files into test fixtures.
 - **Removed unreliable `journey-think-bigger` routing test.** Never passed reliably because the routing signal was too ambiguous. 10 other journey tests cover routing with clear signals.
-
-### For contributors
-
-- New CLAUDE.md rule: never copy full SKILL.md files into E2E test fixtures. Extract the relevant section only.
 
 ## [0.12.6.0] - 2026-03-27. Sidebar Knows What Page You're On
 
@@ -4175,29 +3751,12 @@ You can now watch Claude work in a real Chrome window and direct it from a sideb
 - **Telemetry RLS policies tightened.** Row-level security policies on all telemetry tables now deny direct access via the anon key. All reads and writes go through validated edge functions with schema checks, event type allowlists, and field length limits.
 - **Community dashboard is faster and server-cached.** Dashboard stats are now served from a single edge function with 1-hour server-side caching, replacing multiple direct queries.
 
-### For contributors
-
-- `E2E_TIERS` map in `test/helpers/touchfiles.ts` classifies every test. a free validation test ensures it stays in sync with `E2E_TOUCHFILES`
-- `EVALS_FAST` / `FAST_EXCLUDED_TESTS` removed in favor of `EVALS_TIER`
-- `allow_failure` removed from CI matrix (gate tests should be reliable)
-- New `.github/workflows/evals-periodic.yml` runs periodic tests Monday 6 AM UTC
-- New migration: `supabase/migrations/002_tighten_rls.sql`
-- New smoke test: `supabase/verify-rls.sh` (9 checks: 5 reads + 4 writes)
-- Extended `test/telemetry.test.ts` with field name verification
-- Untracked `browse/dist/` binaries from git (arm64-only, rebuilt by `./setup`)
-
 ## [0.11.15.0] - 2026-03-24. E2E Test Coverage for Plan Reviews & Codex
 
 ### Added
 
 - **E2E tests verify plan review reports appear at the bottom of plans.** The `/plan-eng-review` review report is now tested end-to-end. if it stops writing `## CYBERDART REVIEW REPORT` to the plan file, the test catches it.
 - **E2E tests verify Codex is offered in every plan skill.** Four new lightweight tests confirm that `/office-hours`, `/plan-ceo-review`, `/plan-design-review`, and `/plan-eng-review` all check for Codex availability, prompt the user, and handle the fallback when Codex is unavailable.
-
-### For contributors
-
-- New E2E tests in `test/skill-e2e-plan.test.ts`: `plan-review-report`, `codex-offered-eng-review`, `codex-offered-ceo-review`, `codex-offered-office-hours`, `codex-offered-design-review`
-- Updated touchfile mappings and selection count assertions
-- Added `touchfiles` to the documented global touchfile list in CLAUDE.md
 
 ## [0.11.14.0] - 2026-03-24. Windows Browse Fix
 
@@ -4207,10 +3766,6 @@ You can now watch Claude work in a real Chrome window and direct it from a sideb
 - **Health check runs first on all platforms.** `ensureServer()` now tries an HTTP health check before falling back to PID-based detection. more reliable on every OS, not just Windows.
 - **Startup errors are logged to disk.** When the server fails to start, errors are written to `~/.cyberdart/browse-startup-error.log` so Windows users (who lose stderr due to process detachment) can debug.
 - **Chromium sandbox disabled on Windows.** Chromium's sandbox requires elevated privileges when spawned through the Bun→Node chain. now disabled on Windows only.
-
-### For contributors
-
-- New tests for `isServerHealthy()` and startup error logging in `browse/test/config.test.ts`
 
 ## [0.11.13.0] - 2026-03-24. Worktree Isolation + Infrastructure Elegance
 
@@ -4224,12 +3779,6 @@ You can now watch Claude work in a real Chrome window and direct it from a sideb
 
 - **Gen-skill-docs is now a modular resolver pipeline.** The monolithic 1700-line generator is split into 8 focused resolver modules (browse, preamble, design, review, testing, utility, constants, codex-helpers). Adding a new placeholder resolver is now a single file instead of editing a megafunction.
 - **Eval results are project-scoped.** Results now live in `~/.cyberdart/projects/$SLUG/evals/` instead of the global `~/.cyberdart-dev/evals/`. Multi-project users no longer get eval results mixed together.
-
-### For contributors
-
-- WorktreeManager (`lib/worktree.ts`) is a reusable platform module. future skills like `/batch` can import it directly.
-- 12 new unit tests for WorktreeManager covering lifecycle, harvest, dedup, and error handling.
-- `GLOBAL_TOUCHFILES` updated so worktree infrastructure changes trigger all E2E tests.
 
 ## [0.11.12.0] - 2026-03-24. Triple-Voice Autoplan
 
@@ -4283,12 +3832,6 @@ Thanks to @osc, @Explorer1092, @Qike-Li, @francoisaubert1, @itstimwhite, @yinanl
 
 - **Routing tests now work in CI.** Skills are installed at top-level `.claude/skills/` instead of nested under `.claude/skills/cyberdart/`. project-level skill discovery doesn't recurse into subdirectories.
 
-### For contributors
-
-- `EVALS_CONCURRENCY=40` in CI for maximum parallelism (local default stays at 15)
-- Ubicloud runners at ~$0.006/run (10x cheaper than GitHub standard runners)
-- `workflow_dispatch` trigger for manual re-runs
-
 ## [0.11.9.0] - 2026-03-23. Codex Skill Loading Fix
 
 ### Fixed
@@ -4300,12 +3843,6 @@ Thanks to @osc, @Explorer1092, @Qike-Li, @francoisaubert1, @itstimwhite, @yinanl
 
 - **Codex E2E tests now assert no skill loading errors.** The exact "Skipped loading skill(s)" error that prompted this fix is now a regression test. `stderr` is captured and checked.
 - **Codex troubleshooting entry in README.** Manual fix instructions for users who hit the loading error before the auto-migration runs.
-
-### For contributors
-
-- `test/gen-skill-docs.test.ts` validates all `.agents/` descriptions stay within 1024 chars
-- `cyberdart-update-check` includes a one-time migration that deletes oversized Codex SKILL.md files
-- P1 TODO added: Codex→Claude reverse buddy check skill
 
 ## [0.11.8.0] - 2026-03-23. zsh Compatibility Fix
 
@@ -4323,11 +3860,6 @@ Thanks to @osc, @Explorer1092, @Qike-Li, @francoisaubert1, @itstimwhite, @yinanl
 
 - **`/review` now satisfies the ship readiness gate.** Previously, running `/review` before `/ship` always showed "NOT CLEARED" because `/review` didn't log its result and `/ship` only looked for `/plan-eng-review`. Now `/review` persists its outcome to the review log, and all dashboards recognize both `/review` (diff-scoped) and `/plan-eng-review` (plan-stage) as valid Eng Review sources.
 - **Ship abort prompt now mentions both review options.** When Eng Review is missing, `/ship` suggests "run `/review` or `/plan-eng-review`" instead of only mentioning `/plan-eng-review`.
-
-### For contributors
-
-- Based on PR #338 by @malikrohail. DRY improvement per eng review: updated the shared `REVIEW_DASHBOARD` resolver instead of creating a duplicate ship-only resolver.
-- 4 new validation tests covering review-log persistence, dashboard propagation, and abort text.
 
 ## [0.11.6.0] - 2026-03-23. Infrastructure-First Security Audit
 
@@ -4447,11 +3979,6 @@ Thanks to @osc, @Explorer1092, @Qike-Li, @francoisaubert1, @itstimwhite, @yinanl
 - **Concurrent server start race fixed.** An exclusive lockfile prevents two CLI invocations from both killing the old server and starting new ones simultaneously, which could leave orphaned Chromium processes.
 - **Smarter storage redaction.** Key matching now uses underscore-aware boundaries (won't false-positive on `keyboardShortcuts` or `monkeyPatch`). Value detection expanded to cover AWS, Stripe, Anthropic, Google, Sendgrid, and Supabase key prefixes.
 - **CI workflow YAML lint error fixed.**
-
-### For contributors
-
-- **Community PR triage process documented** in CONTRIBUTING.md.
-- **Storage redaction test coverage.** Four new tests for key-based and value-based detection.
 
 ## [0.10.2.0] - 2026-03-22. Autoplan Depth Fix
 
@@ -4812,172 +4339,11 @@ Read the philosophy: https://garryslist.org/posts/boil-the-ocean
 - **`/cyberdart-upgrade` now catches stale vendored copies automatically.** If your global cyberdart is up to date but the vendored copy in your project is behind, `/cyberdart-upgrade` detects the mismatch and syncs it. No more manually asking "did we vendor it?". it just tells you and offers to update.
 - **Upgrade sync is safer.** If `./setup` fails while syncing a vendored copy, cyberdart restores the previous version from backup instead of leaving a broken install.
 
-### For contributors
-
-- Standalone usage section in `cyberdart-upgrade/SKILL.md.tmpl` now references Steps 2 and 4.5 (DRY) instead of duplicating detection/sync bash blocks. Added one new version-comparison bash block.
-- Update check fallback in standalone mode now matches the preamble pattern (global path → local path → `|| true`).
-
-## 0.6.0. 2026-03-17
-
-- **100% test coverage is the key to great vibe coding.** cyberdart now bootstraps test frameworks from scratch when your project doesn't have one. Detects your runtime, researches the best framework, asks you to pick, installs it, writes 3-5 real tests for your actual code, sets up CI/CD (GitHub Actions), creates TESTING.md, and adds test culture instructions to CLAUDE.md. Every Claude Code session after that writes tests naturally.
-- **Every bug fix now gets a regression test.** When `/qa` fixes a bug and verifies it, Phase 8e.5 automatically generates a regression test that catches the exact scenario that broke. Tests include full attribution tracing back to the QA report. Auto-incrementing filenames prevent collisions across sessions.
-- **Ship with confidence. coverage audit shows what's tested and what's not.** `/ship` Step 3.4 builds a code path map from your diff, searches for corresponding tests, and produces an ASCII coverage diagram with quality stars (★★★ = edge cases + errors, ★★ = happy path, ★ = smoke test). Gaps get tests auto-generated. PR body shows "Tests: 42 → 47 (+5 new)".
-- **Your retro tracks test health.** `/retro` now shows total test files, tests added this period, regression test commits, and trend deltas. If test ratio drops below 20%, it flags it as a growth area.
-- **Design reviews generate regression tests too.** `/qa-design-review` Phase 8e.5 skips CSS-only fixes (those are caught by re-running the design audit) but writes tests for JavaScript behavior changes like broken dropdowns or animation failures.
-
-### For contributors
-
-- Added `generateTestBootstrap()` resolver to `gen-skill-docs.ts` (~155 lines). Registered as `{{TEST_BOOTSTRAP}}` in the RESOLVERS map. Inserted into qa, ship (Step 2.5), and qa-design-review templates.
-- Phase 8e.5 regression test generation added to `qa/SKILL.md.tmpl` (46 lines) and CSS-aware variant to `qa-design-review/SKILL.md.tmpl` (12 lines). Rule 13 amended to allow creating new test files.
-- Step 3.4 test coverage audit added to `ship/SKILL.md.tmpl` (88 lines) with quality scoring rubric and ASCII diagram format.
-- Test health tracking added to `retro/SKILL.md.tmpl`: 3 new data gathering commands, metrics row, narrative section, JSON schema field.
-- `qa-only/SKILL.md.tmpl` gets recommendation note when no test framework detected.
-- `qa-report-template.md` gains Regression Tests section with deferred test specs.
-- ARCHITECTURE.md placeholder table updated with `{{TEST_BOOTSTRAP}}` and `{{REVIEW_DASHBOARD}}`.
-- WebSearch added to allowed-tools for qa, ship, qa-design-review.
-- 26 new validation tests, 2 new E2E evals (bootstrap + coverage audit).
-- 2 new P3 TODOs: CI/CD for non-GitHub providers, auto-upgrade weak tests.
-
-## 0.5.4. 2026-03-17
-
-- **Engineering review is always the full review now.** `/plan-eng-review` no longer asks you to choose between "big change" and "small change" modes. Every plan gets the full interactive walkthrough (architecture, code quality, tests, performance). Scope reduction is only suggested when the complexity check actually triggers. not as a standing menu option.
-- **Ship stops asking about reviews once you've answered.** When `/ship` asks about missing reviews and you say "ship anyway" or "not relevant," that decision is saved for the branch. No more getting re-asked every time you re-run `/ship` after a pre-landing fix.
-
-### For contributors
-
-- Removed SMALL_CHANGE / BIG_CHANGE / SCOPE_REDUCTION menu from `plan-eng-review/SKILL.md.tmpl`. Scope reduction is now proactive (triggered by complexity check) rather than a menu item.
-- Added review gate override persistence to `ship/SKILL.md.tmpl`. writes `ship-review-override` entries to `$BRANCH-reviews.jsonl` so subsequent `/ship` runs skip the gate.
-- Updated 2 E2E test prompts to match new flow.
-
-## 0.5.3. 2026-03-17
-
-- **You're always in control. even when dreaming big.** `/plan-ceo-review` now presents every scope expansion as an individual decision you opt into. EXPANSION mode recommends enthusiastically, but you say yes or no to each idea. No more "the agent went wild and added 5 features I didn't ask for."
-- **New mode: SELECTIVE EXPANSION.** Hold your current scope as the baseline, but see what else is possible. The agent surfaces expansion opportunities one by one with neutral recommendations. you cherry-pick the ones worth doing. Perfect for iterating on existing features where you want rigor but also want to be tempted by adjacent improvements.
-- **Your CEO review visions are saved, not lost.** Expansion ideas, cherry-pick decisions, and 10x visions are now persisted to `~/.cyberdart/projects/{repo}/ceo-plans/` as structured design documents. Stale plans get archived automatically. If a vision is exceptional, you can promote it to `docs/designs/` in your repo for the team.
-
-- **Smarter ship gates.** `/ship` no longer nags you about CEO and Design reviews when they're not relevant. Eng Review is the only required gate (and you can disable even that with `cyberdart-config set skip_eng_review true`). CEO Review is recommended for big product changes; Design Review for UI work. The dashboard still shows all three. it just won't block you for the optional ones.
-
-### For contributors
-
-- Added SELECTIVE EXPANSION mode to `plan-ceo-review/SKILL.md.tmpl` with cherry-pick ceremony, neutral recommendation posture, and HOLD SCOPE baseline.
-- Rewrote EXPANSION mode's Step 0D to include opt-in ceremony. distill vision into discrete proposals, present each as AskUserQuestion.
-- Added CEO plan persistence (0D-POST step): structured markdown with YAML frontmatter (`status: ACTIVE/ARCHIVED/PROMOTED`), scope decisions table, archival flow.
-- Added `docs/designs` promotion step after Review Log.
-- Mode Quick Reference table expanded to 4 columns.
-- Review Readiness Dashboard: Eng Review required (overridable via `skip_eng_review` config), CEO/Design optional with agent judgment.
-- New tests: CEO review mode validation (4 modes, persistence, promotion), SELECTIVE EXPANSION E2E test.
-
-## 0.5.2. 2026-03-17
-
-- **Your design consultant now takes creative risks.** `/design-consultation` doesn't just propose a safe, coherent system. it explicitly breaks down SAFE CHOICES (category baseline) vs. RISKS (where your product stands out). You pick which rules to break. Every risk comes with a rationale for why it works and what it costs.
-- **See the landscape before you choose.** When you opt into research, the agent browses real sites in your space with screenshots and accessibility tree analysis. not just web search results. You see what's out there before making design decisions.
-- **Preview pages that look like your product.** The preview page now renders realistic product mockups. dashboards with sidebar nav and data tables, marketing pages with hero sections, settings pages with forms. not just font swatches and color palettes.
-
-## 0.5.1. 2026-03-17
-- **Know where you stand before you ship.** Every `/plan-ceo-review`, `/plan-eng-review`, and `/plan-design-review` now logs its result to a review tracker. At the end of each review, you see a **Review Readiness Dashboard** showing which reviews are done, when they ran, and whether they're clean. with a clear CLEARED TO SHIP or NOT READY verdict.
-- **`/ship` checks your reviews before creating the PR.** Pre-flight now reads the dashboard and asks if you want to continue when reviews are missing. Informational only. it won't block you, but you'll know what you skipped.
-- **One less thing to copy-paste.** The SLUG computation (that opaque sed pipeline for computing `owner-repo` from git remote) is now a shared `bin/cyberdart-slug` helper. All 14 inline copies across templates replaced with `source <(cyberdart-slug)`. If the format ever changes, fix it once.
-- **Screenshots are now visible during QA and browse sessions.** When cyberdart takes screenshots, they now show up as clickable image elements in your output. no more invisible `/tmp/browse-screenshot.png` paths you can't see. Works in `/qa`, `/qa-only`, `/plan-design-review`, `/qa-design-review`, `/browse`, and `/cyberdart`.
-
-### For contributors
-
-- Added `{{REVIEW_DASHBOARD}}` resolver to `gen-skill-docs.ts`. shared dashboard reader injected into 4 templates (3 review skills + ship).
-- Added `bin/cyberdart-slug` helper (5-line bash) with unit tests. Outputs `SLUG=` and `BRANCH=` lines, sanitizes `/` to `-`.
-- New TODOs: smart review relevance detection (P3), `/merge` skill for review-gated PR merge (P2).
-
-## 0.5.0. 2026-03-16
-
-- **Your site just got a design review.** `/plan-design-review` opens your site and reviews it like a senior product designer. typography, spacing, hierarchy, color, responsive, interactions, and AI slop detection. Get letter grades (A-F) per category, a dual headline "Design Score" + "AI Slop Score", and a structured first impression that doesn't pull punches.
-- **It can fix what it finds, too.** `/qa-design-review` runs the same designer's eye audit, then iteratively fixes design issues in your source code with atomic `style(design):` commits and before/after screenshots. CSS-safe by default, with a stricter self-regulation heuristic tuned for styling changes.
-- **Know your actual design system.** Both skills extract your live site's fonts, colors, heading scale, and spacing patterns via JS. then offer to save the inferred system as a `DESIGN.md` baseline. Finally know how many fonts you're actually using.
-- **AI Slop detection is a headline metric.** Every report opens with two scores: Design Score and AI Slop Score. The AI slop checklist catches the 10 most recognizable AI-generated patterns. the 3-column feature grid, purple gradients, decorative blobs, emoji bullets, generic hero copy.
-- **Design regression tracking.** Reports write a `design-baseline.json`. Next run auto-compares: per-category grade deltas, new findings, resolved findings. Watch your design score improve over time.
-- **80-item design audit checklist** across 10 categories: visual hierarchy, typography, color/contrast, spacing/layout, interaction states, responsive, motion, content/microcopy, AI slop, and performance-as-design. Distilled from Vercel's 100+ rules, Anthropic's frontend design skill, and 6 other design frameworks.
-
-### For contributors
-
-- Added `{{DESIGN_METHODOLOGY}}` resolver to `gen-skill-docs.ts`. shared design audit methodology injected into both `/plan-design-review` and `/qa-design-review` templates, following the `{{QA_METHODOLOGY}}` pattern.
-- Added `~/.cyberdart-dev/plans/` as a local plans directory for long-range vision docs (not checked in). CLAUDE.md and TODOS.md updated.
-- Added `/setup-design-md` to TODOS.md (P2) for interactive DESIGN.md creation from scratch.
-
-## 0.4.5. 2026-03-16
-
-- **Review findings now actually get fixed, not just listed.** `/review` and `/ship` used to print informational findings (dead code, test gaps, N+1 queries) and then ignore them. Now every finding gets action: obvious mechanical fixes are applied automatically, and genuinely ambiguous issues are batched into a single question instead of 8 separate prompts. You see `[AUTO-FIXED] file:line Problem → what was done` for each auto-fix.
-- **You control the line between "just fix it" and "ask me first."** Dead code, stale comments, N+1 queries get auto-fixed. Security issues, race conditions, design decisions get surfaced for your call. The classification lives in one place (`review/checklist.md`) so both `/review` and `/ship` stay in sync.
-
 ### Fixed
 
 - **`$B js "const x = await fetch(...); return x.status"` now works.** The `js` command used to wrap everything as an expression. so `const`, semicolons, and multi-line code all broke. It now detects statements and uses a block wrapper, just like `eval` already did.
 - **Clicking a dropdown option no longer hangs forever.** If an agent sees `@e3 [option] "Admin"` in a snapshot and runs `click @e3`, cyberdart now auto-selects that option instead of hanging on an impossible Playwright click. The right thing just happens.
 - **When click is the wrong tool, cyberdart tells you.** Clicking an `<option>` via CSS selector used to time out with a cryptic Playwright error. Now you get: `"Use 'browse select' instead of 'click' for dropdown options."`
-
-### For contributors
-
-- Gate Classification → Severity Classification rename (severity determines presentation order, not whether you see a prompt).
-- Fix-First Heuristic section added to `review/checklist.md`. the canonical AUTO-FIX vs ASK classification.
-- New validation test: `Fix-First Heuristic exists in checklist and is referenced by review + ship`.
-- Extracted `needsBlockWrapper()` and `wrapForEvaluate()` helpers in `read-commands.ts`. shared by both `js` and `eval` commands (DRY).
-- Added `getRefRole()` to `BrowserManager`. exposes ARIA role for ref selectors without changing `resolveRef` return type.
-- Click handler auto-routes `[role=option]` refs to `selectOption()` via parent `<select>`, with DOM `tagName` check to avoid blocking custom listbox components.
-- 6 new tests: multi-line js, semicolons, statement keywords, simple expressions, option auto-routing, CSS option error guidance.
-
-## 0.4.4. 2026-03-16
-
-- **New releases detected in under an hour, not half a day.** The update check cache was set to 12 hours, which meant you could be stuck on an old version all day while new releases dropped. Now "you're up to date" expires after 60 minutes, so you'll see upgrades within the hour. "Upgrade available" still nags for 12 hours (that's the point).
-- **`/cyberdart-upgrade` always checks for real.** Running `/cyberdart-upgrade` directly now bypasses the cache and does a fresh check against GitHub. No more "you're already on the latest" when you're not.
-
-### For contributors
-
-- Split `last-update-check` cache TTL: 60 min for `UP_TO_DATE`, 720 min for `UPGRADE_AVAILABLE`.
-- Added `--force` flag to `bin/cyberdart-update-check` (deletes cache file before checking).
-- 3 new tests: `--force` busts UP_TO_DATE cache, `--force` busts UPGRADE_AVAILABLE cache, 60-min TTL boundary test with `utimesSync`.
-
-## 0.4.3. 2026-03-16
-
-- **New `/document-release` skill.** Run it after `/ship` but before merging. it reads every doc file in your project, cross-references the diff, and updates README, ARCHITECTURE, CONTRIBUTING, CHANGELOG, and TODOS to match what you actually shipped. Risky changes get surfaced as questions; everything else is automatic.
-- **Every question is now crystal clear, every time.** You used to need 3+ sessions running before cyberdart would give you full context and plain English explanations. Now every question. even in a single session. tells you the project, branch, and what's happening, explained simply enough to understand mid-context-switch. No more "sorry, explain it to me more simply."
-- **Branch name is always correct.** cyberdart now detects your current branch at runtime instead of relying on the snapshot from when the conversation started. Switch branches mid-session? cyberdart keeps up.
-
-### For contributors
-
-- Merged ELI16 rules into base AskUserQuestion format. one format instead of two, no `_SESSIONS >= 3` conditional.
-- Added `_BRANCH` detection to preamble bash block (`git branch --show-current` with fallback).
-- Added regression guard tests for branch detection and simplification rules.
-
-## 0.4.2. 2026-03-16
-
-- **`$B js "await fetch(...)"` now just works.** Any `await` expression in `$B js` or `$B eval` is automatically wrapped in an async context. No more `SyntaxError: await is only valid in async functions`. Single-line eval files return values directly; multi-line files use explicit `return`.
-- **Contributor mode now reflects, not just reacts.** Instead of only filing reports when something breaks, contributor mode now prompts periodic reflection: "Rate your cyberdart experience 0-10. Not a 10? Think about why." Catches quality-of-life issues and friction that passive detection misses. Reports now include a 0-10 rating and "What would make this a 10" to focus on actionable improvements.
-- **Skills now respect your branch target.** `/ship`, `/review`, `/qa`, and `/plan-ceo-review` detect which branch your PR actually targets instead of assuming `main`. Stacked branches, Conductor workspaces targeting feature branches, and repos using `master` all just work now.
-- **`/retro` works on any default branch.** Repos using `master`, `develop`, or other default branch names are detected automatically. no more empty retros because the branch name was wrong.
-- **New `{{BASE_BRANCH_DETECT}}` placeholder** for skill authors. drop it into any template and get 3-step branch detection (PR base → repo default → fallback) for free.
-- **3 new E2E smoke tests** validate base branch detection works end-to-end across ship, review, and retro skills.
-
-### For contributors
-
-- Added `hasAwait()` helper with comment-stripping to avoid false positives on `// await` in eval files.
-- Smart eval wrapping: single-line → expression `(...)`, multi-line → block `{...}` with explicit `return`.
-- 6 new async wrapping unit tests, 40 new contributor mode preamble validation tests.
-- Calibration example framed as historical ("used to fail") to avoid implying a live bug post-fix.
-- Added "Writing SKILL templates" section to CLAUDE.md. rules for natural language over bash-isms, dynamic branch detection, self-contained code blocks.
-- Hardcoded-main regression test scans all `.tmpl` files for git commands with hardcoded `main`.
-- QA template cleaned up: removed `REPORT_DIR` shell variable, simplified port detection to prose.
-- cyberdart-upgrade template: explicit cross-step prose for variable references between bash blocks.
-
-## 0.4.1. 2026-03-16
-
-- **cyberdart now notices when it screws up.** Turn on contributor mode (`cyberdart-config set cyberdart_contributor true`) and cyberdart automatically writes up what went wrong. what you were doing, what broke, repro steps. Next time something annoys you, the bug report is already written. Fork cyberdart and fix it yourself.
-- **Juggling multiple sessions? cyberdart keeps up.** When you have 3+ cyberdart windows open, every question now tells you which project, which branch, and what you were working on. No more staring at a question thinking "wait, which window is this?"
-- **Every question now comes with a recommendation.** Instead of dumping options on you and making you think, cyberdart tells you what it would pick and why. Same clear format across every skill.
-- **/review now catches forgotten enum handlers.** Add a new status, tier, or type constant? /review traces it through every switch statement, allowlist, and filter in your codebase. not just the files you changed. Catches the "added the value but forgot to handle it" class of bugs before they ship.
-
-### For contributors
-
-- Renamed `{{UPDATE_CHECK}}` to `{{PREAMBLE}}` across all 11 skill templates. one startup block now handles update check, session tracking, contributor mode, and question formatting.
-- DRY'd plan-ceo-review and plan-eng-review question formatting to reference the preamble baseline instead of duplicating rules.
-- Added CHANGELOG style guide and vendored symlink awareness docs to CLAUDE.md.
-
-## 0.4.0. 2026-03-16
 
 ### Added
 - **QA-only skill** (`/qa-only`). report-only QA mode that finds and documents bugs without making fixes. Hand off a clean bug report to your team without the agent touching your code.
