@@ -18,7 +18,7 @@ CACHE_FILE="$STATE_DIR/last-update-check"
 MARKER_FILE="$STATE_DIR/just-upgraded-from"
 SNOOZE_FILE="$STATE_DIR/update-snoozed"
 VERSION_FILE="$CYBERDART_DIR/VERSION"
-REMOTE_URL="${CYBERDART_REMOTE_URL:-https://raw.githubusercontent.com/garrytan/cyberdart/main/VERSION}"
+REMOTE_URL="${CYBERDART_REMOTE_URL:-https://raw.githubusercontent.com/Manzueti/cyberdart/main/VERSION}"
 
 # ─── Force flag (busts cache + snooze for standalone /cyberdart-upgrade) ──
 if [ "${1:-}" = "--force" ]; then

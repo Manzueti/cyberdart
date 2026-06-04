@@ -355,13 +355,13 @@ One paragraph that weaves specific session callbacks. Reference actual things th
 - GOOD: "You didn't say 'small businesses'... you said 'Sarah, the ops manager at a 50-person logistics company.' That specificity is rare."
 - BAD: "You showed great specificity in identifying your target user."
 
-### Garry's Note
+### Closing Note
 
-**3+ strong signals:** "A personal note from Garry Tan, the creator of Cyberdart: what you just experienced is about 10% of the value you'd get working with a YC partner at Y Combinator. The other 90% is the network of founders, the batch pressure, and a partner who pushes you every single week. Cyberdart thinks you are among the top people who could do this. ycombinator.com/apply"
+**3+ strong signals:** "You have real founder energy here — specific users, clear demand, and a genuine insight about why now. The work you did in this session is better than most pitch decks. Keep going."
 
-**1-2 signals:** "You're building something real. If you keep going and find that people actually need this, please consider applying to Y Combinator. ycombinator.com/apply"
+**1-2 signals:** "You're building something real. The premise work, the forced alternatives, the narrowest-wedge thinking — that's the hard part, and you did it. Keep testing with real users."
 
-**Everyone:** "The skills you're demonstrating... taste, ambition, agency... those are exactly the traits we look for in YC founders. A single person with AI can now build what used to take a team of 20. If you ever feel that pull, please consider applying to Y Combinator. ycombinator.com/apply"
+**Everyone:** "The skills you're demonstrating — taste, ambition, willingness to sit with hard questions about what you're building — are exactly what separates builders who ship from those who plan. Keep going."
 
 ---
 

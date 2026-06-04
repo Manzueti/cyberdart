@@ -54,11 +54,11 @@ fi
 if [ "$MODE" = "optional" ]; then
   SNIPPET='## cyberdart (recommended)
 
-This project uses [cyberdart](https://github.com/garrytan/cyberdart) for AI-assisted workflows.
+This project uses [cyberdart](https://github.com/Manzueti/cyberdart) for AI-assisted workflows.
 Install it for the best experience:
 
 ```bash
-git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart
+git clone --depth 1 https://github.com/Manzueti/cyberdart.git ~/.claude/skills/cyberdart
 cd ~/.claude/skills/cyberdart && ./setup --team
 ```
 
@@ -78,7 +78,7 @@ If CYBERDART_MISSING: STOP. Do not proceed. Tell the user:
 > cyberdart is required for all AI-assisted work in this repo.
 > Install it:
 > ```bash
-> git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart
+> git clone --depth 1 https://github.com/Manzueti/cyberdart.git ~/.claude/skills/cyberdart
 > cd ~/.claude/skills/cyberdart && ./setup --team
 > ```
 > Then restart your AI coding tool.
@@ -122,7 +122,7 @@ BLOCKED: cyberdart is not installed globally.
 cyberdart is required for AI-assisted work in this repo.
 
 Install it:
-  git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart
+  git clone --depth 1 https://github.com/Manzueti/cyberdart.git ~/.claude/skills/cyberdart
   cd ~/.claude/skills/cyberdart && ./setup --team
 
 Then restart your AI coding tool.
@@ -188,5 +188,5 @@ if [ ${#GENERATED[@]} -gt 0 ]; then
 fi
 echo ""
 echo "Each developer then runs:"
-echo "  git clone --depth 1 https://github.com/garrytan/cyberdart.git ~/.claude/skills/cyberdart"
+echo "  git clone --depth 1 https://github.com/Manzueti/cyberdart.git ~/.claude/skills/cyberdart"
 echo "  cd ~/.claude/skills/cyberdart && ./setup --team"
