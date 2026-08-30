@@ -9,10 +9,14 @@ import {
   isDisplayFree,
 } from '../src/xvfb';
 
+// pickFreeDisplay/isDisplayFree shell out to xdpyinfo, not just Xvfb, so both
+// binaries have to be present before these tests can run. Gating on Xvfb alone
+// made them throw ENOENT on hosts that ship one without the other.
 const HAS_XVFB = (() => {
   if (process.platform !== 'linux') return false;
-  const result = Bun.spawnSync(['which', 'Xvfb'], { stdout: 'pipe', stderr: 'pipe' });
-  return result.exitCode === 0;
+  return ['Xvfb', 'xdpyinfo'].every(
+    (bin) => Bun.spawnSync(['which', bin], { stdout: 'pipe', stderr: 'pipe' }).exitCode === 0,
+  );
 })();
 
 describe('shouldSpawnXvfb', () => {
