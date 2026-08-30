@@ -261,15 +261,15 @@ describe('schema regression', () => {
     expect(r.code).toBe(0);
     const keys = Object.keys(r.json).sort();
     expect(keys).toEqual([
+      'cyberdart_artifacts_remote',
+      'cyberdart_brain_git',
+      'cyberdart_brain_sync_mode',
       'gbrain_config_exists',
       'gbrain_doctor_ok',
       'gbrain_engine',
       'gbrain_mcp_mode',
       'gbrain_on_path',
       'gbrain_version',
-      'cyberdart_artifacts_remote',
-      'cyberdart_brain_git',
-      'cyberdart_brain_sync_mode',
     ]);
   });
 });
