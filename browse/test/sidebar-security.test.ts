@@ -14,12 +14,22 @@ const SERVER_SRC = fs.readFileSync(
   'utf-8',
 );
 
-const AGENT_SRC = fs.readFileSync(
-  path.join(import.meta.dir, '../src/sidebar-agent.ts'),
-  'utf-8',
-);
+// sidebar-agent.ts was ripped in the v1.14.0.0 sidebar refactor (the one-shot
+// chat queue was replaced by the interactive Terminal PTY). Reading it at
+// module scope crashed the whole file on load, which Bun reports as a soft
+// module-load error on macOS/Linux but as a hard `bun test` failure (exit 1)
+// on Windows. Same try/catch shape as security-audit-r2.test.ts: keep the
+// source optional so the file loads, and skip the legacy blocks below.
+const AGENT_SRC = (() => {
+  try {
+    return fs.readFileSync(path.join(import.meta.dir, '../src/sidebar-agent.ts'), 'utf-8');
+  } catch {
+    return '';
+  }
+})();
+const AGENT_RIPPED = AGENT_SRC === '';
 
-describe('Sidebar prompt injection defense', () => {
+describe.skipIf(AGENT_RIPPED)('Sidebar prompt injection defense', () => {
   // --- XML Framing ---
 
   test('system prompt uses XML framing with <system> tags', () => {

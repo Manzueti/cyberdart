@@ -15,16 +15,26 @@ import { describe, test, expect } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const AGENT_SRC = fs.readFileSync(
-  path.join(import.meta.dir, '../src/sidebar-agent.ts'),
-  'utf-8',
-);
+// sidebar-agent.ts was ripped in the v1.14.0.0 sidebar refactor (the one-shot
+// chat queue was replaced by the interactive Terminal PTY). Reading it at
+// module scope crashed the whole file on load, which Bun reports as a soft
+// module-load error on macOS/Linux but as a hard `bun test` failure (exit 1)
+// on Windows. Same try/catch shape as security-audit-r2.test.ts: keep the
+// source optional so the file loads, and skip the legacy blocks below.
+const AGENT_SRC = (() => {
+  try {
+    return fs.readFileSync(path.join(import.meta.dir, '../src/sidebar-agent.ts'), 'utf-8');
+  } catch {
+    return '';
+  }
+})();
+const AGENT_RIPPED = AGENT_SRC === '';
 const SERVER_SRC = fs.readFileSync(
   path.join(import.meta.dir, '../src/server.ts'),
   'utf-8',
 );
 
-describe('detectCanaryLeak — channel coverage (source)', () => {
+describe.skipIf(AGENT_RIPPED)('detectCanaryLeak — channel coverage (source)', () => {
   test('covers assistant_text channel', () => {
     expect(AGENT_SRC).toContain("'assistant_text'");
   });
@@ -50,7 +60,7 @@ describe('detectCanaryLeak — channel coverage (source)', () => {
   });
 });
 
-describe('SCANNED_TOOLS — ML scan coverage for tool outputs', () => {
+describe.skipIf(AGENT_RIPPED)('SCANNED_TOOLS — ML scan coverage for tool outputs', () => {
   test('Read, Grep, Glob, Bash, WebFetch all included', () => {
     const match = AGENT_SRC.match(/const SCANNED_TOOLS = new Set\(\[([^\]]+)\]\);/);
     expect(match).toBeTruthy();
@@ -69,7 +79,7 @@ describe('SCANNED_TOOLS — ML scan coverage for tool outputs', () => {
   });
 });
 
-describe('processAgentEvent — security_event relay (server.ts)', () => {
+describe.skipIf(AGENT_RIPPED)('processAgentEvent — security_event relay (server.ts)', () => {
   test('relays verdict, reason, layer, confidence, domain, channel, tool, signals', () => {
     // Block: addChatEntry call inside the security_event branch
     const branch = SERVER_SRC.split("event.type === 'security_event'")[1] ?? '';
@@ -84,7 +94,7 @@ describe('processAgentEvent — security_event relay (server.ts)', () => {
   });
 });
 
-describe('spawnClaude — canary lifecycle (server.ts)', () => {
+describe.skipIf(AGENT_RIPPED)('spawnClaude — canary lifecycle (server.ts)', () => {
   test('generates a fresh canary per message', () => {
     expect(SERVER_SRC).toMatch(/const canary = generateCanary\(\);/);
   });
@@ -102,7 +112,7 @@ describe('spawnClaude — canary lifecycle (server.ts)', () => {
   });
 });
 
-describe('askClaude — pre-spawn + tool-result defense wiring', () => {
+describe.skipIf(AGENT_RIPPED)('askClaude — pre-spawn + tool-result defense wiring', () => {
   test('preSpawnSecurityCheck runs BEFORE claude subprocess spawn', () => {
     // The pre-spawn check must be `await`ed and short-circuit spawning when
     // it returns true.
