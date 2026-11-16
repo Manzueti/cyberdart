@@ -15,3 +15,21 @@ describe('BrowserManager defaults', () => {
     expect(bm.getRefMap()).toEqual([]);
   });
 });
+
+describe('BrowserManager headless launch', () => {
+  it('honors CYBERDART_CHROMIUM_PATH', async () => {
+    const { BrowserManager } = await import('../src/browser-manager');
+    const bogus = '/nonexistent/cyberdart-test-chromium';
+    const prev = process.env.CYBERDART_CHROMIUM_PATH;
+    process.env.CYBERDART_CHROMIUM_PATH = bogus;
+    try {
+      const bm = new BrowserManager();
+      // Playwright names the executable it tried; seeing our path proves the
+      // override reached chromium.launch() in headless mode.
+      await expect(bm.launch()).rejects.toThrow(bogus);
+    } finally {
+      if (prev === undefined) delete process.env.CYBERDART_CHROMIUM_PATH;
+      else process.env.CYBERDART_CHROMIUM_PATH = prev;
+    }
+  });
+});

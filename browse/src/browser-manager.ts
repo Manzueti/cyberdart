@@ -217,8 +217,13 @@ export class BrowserManager {
       console.log(`[browse] Extensions loaded from: ${extensionsDir}`);
     }
 
+    // Same CYBERDART_CHROMIUM_PATH override as the headed path, so a custom or
+    // pre-installed Chromium works when Playwright's bundled build is missing.
+    const executablePath = process.env.CYBERDART_CHROMIUM_PATH || undefined;
+
     this.browser = await chromium.launch({
       headless: useHeadless,
+      ...(executablePath ? { executablePath } : {}),
       // On Windows, Chromium's sandbox fails when the server is spawned through
       // the Bun→Node process chain (GitHub #276). Disable it — local daemon
       // browsing user-specified URLs has marginal sandbox benefit.
