@@ -680,6 +680,7 @@ export const GLOBAL_TOUCHFILES = [
   'test/helpers/session-runner.ts',  // All E2E tests use this runner
   'test/helpers/eval-store.ts',      // All E2E tests store results here
   'test/helpers/touchfiles.ts',      // Self-referential — reclassifying wrong is dangerous
+  'test/helpers/claude-auth.ts',     // Backend selection for every paid test (API key vs Google Cloud)
 ];
 
 // --- Base branch detection ---
