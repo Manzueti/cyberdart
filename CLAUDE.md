@@ -24,7 +24,13 @@ bun run slop          # full slop-scan report (all files)
 bun run slop:diff     # slop findings in files changed on this branch only
 ```
 
-`test:evals` requires `ANTHROPIC_API_KEY`. Codex E2E tests (`test/codex-e2e.test.ts`)
+`test:evals` requires `ANTHROPIC_API_KEY`, or Claude Models on Google Cloud
+(Anthropic managed): set `CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD=1`,
+`ANTHROPIC_GOOGLE_CLOUD_PROJECT`, `ANTHROPIC_GOOGLE_CLOUD_WORKSPACE_ID` (`wrkspc_...`)
+and Google ADC (`gcloud auth application-default login` or
+`GOOGLE_APPLICATION_CREDENTIALS`); the caller needs `roles/claude.user`. The LLM
+judge, `claude -p` and the Agent SDK all follow that switch
+(`test/helpers/claude-auth.ts`). Codex E2E tests (`test/codex-e2e.test.ts`)
 use Codex's own auth from `~/.codex/` config — no `OPENAI_API_KEY` env var needed.
 
 **Where the keys live on this machine.** Conductor workspaces don't inherit the
