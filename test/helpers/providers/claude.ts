@@ -1,4 +1,5 @@
 import type { ProviderAdapter, RunOpts, RunResult, AvailabilityCheck } from './types';
+import { hasClaudeAuth, CLAUDE_AUTH_HINT } from '../claude-auth';
 import { estimateCostUsd } from '../pricing';
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
@@ -25,12 +26,12 @@ export class ClaudeAdapter implements ProviderAdapter {
     if (!resolved) {
       return { ok: false, reason: 'claude CLI not found on PATH. Install from https://claude.ai/download or npm i -g @anthropic-ai/claude-code (or set CYBERDART_CLAUDE_BIN)' };
     }
-    // Auth sniff: ~/.claude/.credentials.json OR ANTHROPIC_API_KEY
+    // Auth sniff: ~/.claude/.credentials.json, ANTHROPIC_API_KEY, or Google Cloud backend
     const credsPath = path.join(os.homedir(), '.claude', '.credentials.json');
     const hasCreds = fs.existsSync(credsPath);
-    const hasKey = !!process.env.ANTHROPIC_API_KEY;
+    const hasKey = hasClaudeAuth();
     if (!hasCreds && !hasKey) {
-      return { ok: false, reason: 'No Claude auth found. Log in via `claude` interactive session, or export ANTHROPIC_API_KEY.' };
+      return { ok: false, reason: 'No Claude auth found. Log in via `claude` interactive session, or ' + CLAUDE_AUTH_HINT + '.' };
     }
     return { ok: true };
   }

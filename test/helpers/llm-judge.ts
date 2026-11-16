@@ -6,10 +6,11 @@
  * regression scorer), and judgeRecommendation (AskUserQuestion recommendation
  * substance scorer).
  *
- * Requires: ANTHROPIC_API_KEY env var
+ * Requires: ANTHROPIC_API_KEY, or the Google Cloud (Anthropic managed)
+ * backend — see helpers/claude-auth.ts.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { createClaudeClient } from './claude-auth';
 
 export interface JudgeScore {
   clarity: number;       // 1-5
@@ -57,7 +58,7 @@ export interface RecommendationScore {
  * for cheaper bounded judgments like judgeRecommendation.
  */
 export async function callJudge<T>(prompt: string, model: string = 'claude-sonnet-4-6'): Promise<T> {
-  const client = new Anthropic();
+  const client = await createClaudeClient();
 
   const makeRequest = () => client.messages.create({
     model,
@@ -77,7 +78,7 @@ export async function callJudge<T>(prompt: string, model: string = 'claude-sonne
     }
   }
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  const text = response.content[0]?.type === 'text' ? (response.content[0].text ?? '') : '';
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error(`Judge returned non-JSON: ${text.slice(0, 200)}`);
   return JSON.parse(jsonMatch[0]) as T;

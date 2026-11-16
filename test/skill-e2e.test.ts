@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { hasClaudeAuth } from './helpers/claude-auth';
 import { runSkillTest } from './helpers/session-runner';
 import type { SkillTestResult } from './helpers/session-runner';
 import { outcomeJudge, callJudge } from './helpers/llm-judge';
@@ -673,8 +674,8 @@ Important: The design checklist should catch issues like blacklisted fonts, smal
 
 // --- B6/B7/B8: Planted-bug outcome evals ---
 
-// Outcome evals also need ANTHROPIC_API_KEY for the LLM judge
-const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+// Outcome evals also need a Claude backend for the LLM judge
+const hasApiKey = hasClaudeAuth();
 const describeOutcome = (evalsEnabled && hasApiKey) ? describe : describe.skip;
 
 // Wrap describeOutcome with selection — skip if no planted-bug tests are selected

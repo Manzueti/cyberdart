@@ -5,6 +5,7 @@
  * tests across multiple files by category.
  */
 
+import { hasClaudeAuth } from './claude-auth';
 import { describe, test, beforeAll, afterAll, expect } from 'bun:test';
 import type { SkillTestResult } from './session-runner';
 import { EvalCollector, judgePassed } from './eval-store';
@@ -82,8 +83,9 @@ export const runId = new Date().toISOString().replace(/[:.]/g, '').replace('T', 
 
 export const browseBin = path.resolve(ROOT, 'browse', 'dist', 'browse');
 
-// Check if Anthropic API key is available (needed for outcome evals)
-export const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+// Check if a Claude backend is configured (needed for outcome evals).
+// API key or Google Cloud (Anthropic managed) — see helpers/claude-auth.ts.
+export const hasApiKey = hasClaudeAuth();
 
 /**
  * Copy a directory tree recursively (files only, follows structure).

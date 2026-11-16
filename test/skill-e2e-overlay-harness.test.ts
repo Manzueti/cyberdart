@@ -20,6 +20,7 @@
  * Gated by EVALS=1 AND EVALS_TIER=periodic. Never runs under test:gate.
  */
 
+import { claudeAuthEnv } from './helpers/claude-auth';
 import { describe, test, expect, afterAll } from 'bun:test';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -145,7 +146,7 @@ async function runArm(
           allowedTools: fixture.allowedTools ?? ['Read', 'Glob', 'Grep', 'Bash'],
           permissionMode: 'bypassPermissions',
           settingSources: [],
-          env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? '' },
+          env: claudeAuthEnv(),
           pathToClaudeCodeExecutable: claudeBinary ?? undefined,
           testName: `${fixture.id}-${arm}-${n}`,
           runId,

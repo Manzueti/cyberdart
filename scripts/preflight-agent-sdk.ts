@@ -16,6 +16,7 @@
  * side effects beyond stdout and a ~15 token API call.
  */
 
+import { hasClaudeAuth, claudeAuthEnv } from '../test/helpers/claude-auth';
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { readOverlay } from './resolvers/model-overlay';
 import { resolveClaudeBinary } from '../browse/src/claude-bin';
@@ -53,8 +54,8 @@ async function main() {
 
   // 3. SDK query end-to-end
   console.log('\n3. SDK query end-to-end');
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log('  skip  ANTHROPIC_API_KEY not set — cannot test live query');
+  if (!hasClaudeAuth()) {
+    console.log('  skip  no Claude backend configured — cannot test live query');
   } else {
     try {
       const events: SDKMessage[] = [];
@@ -69,7 +70,7 @@ async function main() {
           settingSources: [],
           maxTurns: 1,
           pathToClaudeCodeExecutable: claudePath ?? undefined,
-          env: { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY },
+          env: claudeAuthEnv(),
         },
       });
       for await (const ev of q) events.push(ev);

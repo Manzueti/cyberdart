@@ -4,14 +4,14 @@
  * Uses the Anthropic API directly (not Agent SDK) to evaluate whether
  * generated command docs are clear, complete, and actionable for an AI agent.
  *
- * Requires: ANTHROPIC_API_KEY env var (or EVALS=1 with key already set)
+ * Requires: ANTHROPIC_API_KEY or the Google Cloud backend (helpers/claude-auth.ts)
  * Run: EVALS=1 bun run test:eval
  *
  * Cost: ~$0.05-0.15 per run (sonnet)
  */
 
 import { describe, test, expect, afterAll } from 'bun:test';
-import Anthropic from '@anthropic-ai/sdk';
+import { createClaudeClient } from './helpers/claude-auth';
 import * as fs from 'fs';
 import * as path from 'path';
 import { callJudge, judge } from './helpers/llm-judge';
@@ -210,7 +210,7 @@ describeIfSelected('LLM-as-judge quality evals', [
 | \`is <prop> <sel>\` | State check (visible/hidden/enabled/disabled/checked/editable/focused) |
 | \`console [--clear\\|--errors]\` | Console messages (--errors filters to error/warning) |`;
 
-    const client = new Anthropic();
+    const client = await createClaudeClient();
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
@@ -236,7 +236,7 @@ Scores are 1-5 overall quality.`,
       }],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.content[0]?.type === 'text' ? (response.content[0].text ?? '') : '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error(`Judge returned non-JSON: ${text.slice(0, 200)}`);
     const result = JSON.parse(jsonMatch[0]);

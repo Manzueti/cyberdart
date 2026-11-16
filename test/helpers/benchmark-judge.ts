@@ -9,17 +9,13 @@
  */
 
 import type { BenchmarkReport, BenchmarkEntry } from './benchmark-runner';
+import { createClaudeClient, hasClaudeAuth, CLAUDE_AUTH_HINT } from './claude-auth';
 
 export async function judgeEntries(report: BenchmarkReport): Promise<void> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not set — judge requires Anthropic access.');
+  if (!hasClaudeAuth()) {
+    throw new Error(`No Claude backend configured — judge requires Anthropic access (${CLAUDE_AUTH_HINT}).`);
   }
-  const { default: Anthropic } = await import('@anthropic-ai/sdk').catch(() => {
-    throw new Error('@anthropic-ai/sdk not installed — run `bun add @anthropic-ai/sdk` if you want the judge.');
-  });
-  const client = new (Anthropic as unknown as new (opts: { apiKey: string }) => {
-    messages: { create: (params: Record<string, unknown>) => Promise<{ content: Array<{ type: string; text: string }> }> };
-  })({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const client = await createClaudeClient();
 
   const successful = report.entries.filter(e => e.available && e.result && !e.result.error);
   if (successful.length === 0) return;
@@ -33,7 +29,7 @@ export async function judgeEntries(report: BenchmarkReport): Promise<void> {
   const textBlock = msg.content.find(c => c.type === 'text');
   if (!textBlock) return;
 
-  const scores = parseScores(textBlock.text, successful.length);
+  const scores = parseScores(textBlock.text ?? "", successful.length);
   for (let i = 0; i < successful.length; i++) {
     const s = scores[i];
     if (!s) continue;
